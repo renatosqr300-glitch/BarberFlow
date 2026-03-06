@@ -1,0 +1,445 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, onSnapshot, query, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+
+// --- CONFIGURAÇÕES E DADOS ESTÁTICOS ---
+const PROFS = [
+  { id: 1, name: 'João Silva', initials: 'JS', color: '#3b82f6', role: 'Barbeiro Sênior' },
+  { id: 2, name: 'Pedro Alves', initials: 'PA', color: '#10b981', role: 'Barbeiro' },
+  { id: 3, name: 'Lucas Costa', initials: 'LC', color: '#f59e0b', role: 'Barbeiro' },
+  { id: 4, name: 'Rafael Souza', initials: 'RS', color: '#ec4899', role: 'Barbeiro' },
+  { id: 5, name: 'Bruno Lima', initials: 'BL', color: '#8b5cf6', role: 'Aprendiz' },
+];
+
+const SERVICES = [
+  { id: 1, name: 'Corte Degradê', price: 45, duration: 30 },
+  { id: 2, name: 'Corte + Barba', price: 65, duration: 60 },
+  { id: 3, name: 'Barba Completa', price: 35, duration: 30 },
+  { id: 4, name: 'Hidratação Capilar', price: 55, duration: 45 },
+  { id: 5, name: 'Pigmentação', price: 80, duration: 90 },
+  { id: 6, name: 'Corte Simples', price: 30, duration: 30 },
+];
+
+const HOUR_START = 8;
+const HOUR_END = 22;
+const HOURS_COUNT = HOUR_END - HOUR_START;
+
+// --- COMPONENTE PRINCIPAL ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState(null);
+  const [toast, setToast] = useState({ show: false, msg: '' });
+  
+  // Form State
+  const [formData, setFormData] = useState({
+    clientName: '',
+    phone: '',
+    profId: 1,
+    serviceId: 1,
+    hour: 8,
+    min: 0
+  });
+
+  const gridRef = useRef(null);
+
+  // --- FIREBASE SETUP ---
+  useEffect(() => {
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'barber-flow-prod';
+
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+
+    const unsubAuth = onAuthStateChanged(auth, setUser);
+    return () => unsubAuth();
+  }, []);
+
+  // --- DATA FETCHING (FIRESTORE) ---
+  useEffect(() => {
+    if (!user) return;
+    const db = getFirestore();
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'barber-flow-prod';
+    
+    // Filtramos por data no JS para simplificar e seguir a RULE 2
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'appointments');
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAppointments(data);
+    }, (error) => {
+      console.error("Erro ao buscar agendamentos:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- HELPERS ---
+  const fmtDate = (d) => d.toISOString().split('T')[0];
+  const dayAppts = appointments.filter(a => a.date === fmtDate(currentDate));
+  
+  const showToast = (msg) => {
+    setToast({ show: true, msg });
+    setTimeout(() => setToast({ show: false, msg: '' }), 3000);
+  };
+
+  const handleSaveAppt = async () => {
+    if (!formData.clientName || !formData.phone) {
+      showToast("⚠️ Preencha nome e telefone");
+      return;
+    }
+
+    const svc = SERVICES.find(s => s.id === Number(formData.serviceId));
+    const newStart = Number(formData.hour) * 60 + Number(formData.min);
+    const newEnd = newStart + svc.duration;
+
+    // Verificação de Conflito
+    const hasConflict = dayAppts.some(a => {
+      if (Number(a.profId) !== Number(formData.profId)) return false;
+      const aSvc = SERVICES.find(s => s.id === Number(a.serviceId));
+      const aStart = a.hour * 60 + a.min;
+      const aEnd = aStart + (aSvc ? aSvc.duration : 30);
+      return newStart < aEnd && newEnd > aStart;
+    });
+
+    if (hasConflict) {
+      showToast("⚠️ Conflito de horário!");
+      return;
+    }
+
+    try {
+      const db = getFirestore();
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'barber-flow-prod';
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'appointments'), {
+        ...formData,
+        profId: Number(formData.profId),
+        serviceId: Number(formData.serviceId),
+        hour: Number(formData.hour),
+        min: Number(formData.min),
+        date: fmtDate(currentDate),
+        status: 'confirmado',
+        createdAt: Timestamp.now()
+      });
+      setIsNewModalOpen(false);
+      setFormData({ clientName: '', phone: '', profId: 1, serviceId: 1, hour: 8, min: 0 });
+      showToast("✅ Agendado com sucesso!");
+    } catch (e) {
+      showToast("❌ Erro ao salvar");
+    }
+  };
+
+  const updateStatus = async (id, newStatus) => {
+    const db = getFirestore();
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'barber-flow-prod';
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'appointments', id), {
+      status: newStatus
+    });
+    setSelectedAppt(null);
+    showToast(`✅ Status: ${newStatus}`);
+  };
+
+  const deleteAppt = async (id) => {
+    const db = getFirestore();
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'barber-flow-prod';
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'appointments', id));
+    setSelectedAppt(null);
+    showToast("🗑 Agendamento removido");
+  };
+
+  // --- RENDER LOGIC ---
+  const stats = {
+    total: dayAppts.length,
+    pending: dayAppts.filter(a => a.status === 'pendente').length,
+    done: dayAppts.filter(a => a.status === 'concluido').length,
+    revenue: dayAppts.reduce((sum, a) => sum + (SERVICES.find(s => s.id === a.serviceId)?.price || 0), 0)
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-[#0c0c0c] text-[#f0ece4] font-['DM_Sans'] overflow-hidden">
+      {/* TOPBAR */}
+      <header className="h-[60px] bg-[#141414] border-b border-white/5 flex items-center px-6 justify-between shrink-0 z-50">
+        <div className="flex items-center gap-4">
+          <div className="font-['Bebas_Neue'] text-2xl tracking-widest uppercase">Barber<span className="text-[#c9973a]">Flow</span></div>
+          <div className="h-7 w-[1px] bg-white/10 hidden md:block"></div>
+          <div className="text-xs text-[#666] hidden md:block">PAINEL ADMINISTRATIVO</div>
+        </div>
+
+        <div className="flex items-center gap-4 bg-[#1c1c1c] border border-white/5 rounded-xl px-3 py-1">
+          <button onClick={() => {
+            const d = new Date(currentDate);
+            d.setDate(d.getDate() - 1);
+            setCurrentDate(d);
+          }} className="hover:text-[#c9973a]">‹</button>
+          <div className="text-sm font-medium min-w-[140px] text-center">
+            {currentDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
+          </div>
+          <button onClick={() => {
+            const d = new Date(currentDate);
+            d.setDate(d.getDate() + 1);
+            setCurrentDate(d);
+          }} className="hover:text-[#c9973a]">›</button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsNewModalOpen(true)}
+            className="bg-gradient-to-br from-[#c9973a] to-[#b8832a] text-black font-bold py-2 px-4 rounded-lg text-sm transition-transform active:scale-95"
+          >
+            ＋ Novo
+          </button>
+          <div className="w-9 h-9 bg-[#242424] rounded-full flex items-center justify-center border border-white/5 text-xs text-[#666]">JO</div>
+        </div>
+      </header>
+
+      {/* STATS */}
+      <div className="flex gap-2 p-3 overflow-x-auto bg-[#141414] border-b border-white/5 shrink-0 scrollbar-hide">
+        {[
+          { label: 'Hoje', val: stats.total, icon: '📅', color: 'text-[#c9973a]' },
+          { label: 'Pendentes', val: stats.pending, icon: '⏳' },
+          { label: 'Concluídos', val: stats.done, icon: '✅' },
+          { label: 'Faturamento', val: `R$ ${stats.revenue}`, icon: '💰', color: 'text-[#c9973a]' }
+        ].map((s, i) => (
+          <div key={i} className="flex items-center gap-3 bg-[#1c1c1c] border border-white/5 p-3 rounded-xl min-w-[140px]">
+            <div className="w-8 h-8 bg-[#242424] rounded-lg flex items-center justify-center">{s.icon}</div>
+            <div>
+              <div className={`text-lg font-bold leading-tight ${s.color || ''}`}>{s.val}</div>
+              <div className="text-[10px] text-[#666] uppercase tracking-wider">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* SIDEBAR (Desktop) */}
+        <aside className="w-[220px] bg-[#141414] border-right border-white/5 flex-col p-4 hidden lg:flex">
+          <div className="text-[10px] text-[#444] font-bold uppercase tracking-[2px] mb-4">Barbeiros</div>
+          <div className="space-y-2">
+            {PROFS.map(p => (
+              <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: p.color }}>{p.initials}</div>
+                <div className="flex-1 overflow-hidden">
+                  <div className="text-sm truncate">{p.name}</div>
+                  <div className="text-[10px] text-[#666]">{dayAppts.filter(a => a.profId === p.id).length} agendamentos</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        {/* AGENDA GRID */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#0c0c0c]">
+          {/* Header das colunas */}
+          <div className="flex bg-[#141414] border-b border-white/5 shrink-0">
+            <div className="w-14 shrink-0"></div>
+            {PROFS.map(p => (
+              <div key={p.id} className="flex-1 min-w-[150px] border-l border-white/5 p-3 flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: p.color }}>{p.initials}</div>
+                <div className="text-xs font-bold truncate">{p.name}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Grid Scrollable */}
+          <div className="flex-1 overflow-auto relative" ref={gridRef}>
+            <div className="flex min-h-[900px] w-fit min-w-full">
+              {/* Coluna de Horas */}
+              <div className="w-14 bg-[#141414] border-r border-white/5 sticky left-0 z-20">
+                {Array.from({ length: HOURS_COUNT + 1 }).map((_, i) => (
+                  <div key={i} className="h-[60px] flex justify-end pr-2 pt-1 text-[10px] text-[#444] border-b border-white/5">
+                    {String(HOUR_START + i).padStart(2, '0')}:00
+                  </div>
+                ))}
+              </div>
+
+              {/* Colunas dos Barbeiros */}
+              {PROFS.map(p => (
+                <div key={p.id} className="flex-1 min-w-[150px] border-r border-white/5 relative bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:100%_60px]">
+                  {dayAppts.filter(a => a.profId === p.id).map(appt => {
+                    const svc = SERVICES.find(s => s.id === appt.serviceId);
+                    const top = (appt.hour - HOUR_START) * 60 + appt.min;
+                    const height = svc ? svc.duration : 30;
+                    
+                    return (
+                      <div 
+                        key={appt.id}
+                        onClick={() => setSelectedAppt({ ...appt, prof: p, svc })}
+                        className="absolute left-1 right-1 rounded-lg border-l-4 p-2 cursor-pointer transition-all hover:brightness-125 z-10 overflow-hidden"
+                        style={{ 
+                          top: `${top}px`, 
+                          height: `${height}px`, 
+                          backgroundColor: `${p.color}22`, 
+                          borderLeftColor: p.color 
+                        }}
+                      >
+                        <div className="text-[11px] font-bold leading-none truncate">{appt.clientName}</div>
+                        {height > 35 && <div className="text-[9px] text-white/60 mt-1 truncate">{svc?.name}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL NOVO AGENDAMENTO */}
+      {isNewModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141414] w-full max-w-md rounded-2xl border border-white/10 p-6">
+            <h2 className="font-['Bebas_Neue'] text-2xl tracking-widest mb-6">Novo Agendamento</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] text-[#666] uppercase font-bold tracking-widest">Nome do Cliente</label>
+                <input 
+                  className="w-full bg-[#1c1c1c] border border-white/5 rounded-lg p-3 text-sm focus:border-[#c9973a] outline-none mt-1"
+                  placeholder="Ex: Carlos Silva"
+                  value={formData.clientName}
+                  onChange={e => setFormData({...formData, clientName: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase font-bold tracking-widest">Barbeiro</label>
+                  <select 
+                    className="w-full bg-[#1c1c1c] border border-white/5 rounded-lg p-3 text-sm outline-none mt-1"
+                    value={formData.profId}
+                    onChange={e => setFormData({...formData, profId: e.target.value})}
+                  >
+                    {PROFS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase font-bold tracking-widest">Serviço</label>
+                  <select 
+                    className="w-full bg-[#1c1c1c] border border-white/5 rounded-lg p-3 text-sm outline-none mt-1"
+                    value={formData.serviceId}
+                    onChange={e => setFormData({...formData, serviceId: e.target.value})}
+                  >
+                    {SERVICES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase font-bold tracking-widest">Horário</label>
+                  <select 
+                    className="w-full bg-[#1c1c1c] border border-white/5 rounded-lg p-3 text-sm outline-none mt-1"
+                    value={`${formData.hour}:${formData.min}`}
+                    onChange={e => {
+                      const [h, m] = e.target.value.split(':');
+                      setFormData({...formData, hour: h, min: m});
+                    }}
+                  >
+                    {Array.from({ length: HOURS_COUNT }).map((_, i) => {
+                      const h = HOUR_START + i;
+                      return (
+                        <React.Fragment key={h}>
+                          <option value={`${h}:0`}>{String(h).padStart(2,'0')}:00</option>
+                          <option value={`${h}:30`}>{String(h).padStart(2,'0')}:30</option>
+                        </React.Fragment>
+                      )
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase font-bold tracking-widest">WhatsApp</label>
+                  <input 
+                    className="w-full bg-[#1c1c1c] border border-white/5 rounded-lg p-3 text-sm outline-none mt-1"
+                    placeholder="(00) 00000-0000"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => setIsNewModalOpen(false)} className="flex-1 py-3 text-[#666] hover:text-white text-sm">Cancelar</button>
+              <button onClick={handleSaveAppt} className="flex-[2] bg-gradient-to-br from-[#c9973a] to-[#b8832a] text-black font-bold py-3 rounded-xl transition-transform active:scale-95">Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETALHES */}
+      {selectedAppt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141414] w-full max-w-sm rounded-2xl border border-white/10 p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: `${selectedAppt.prof.color}22` }}>✂️</div>
+              <div>
+                <h3 className="font-bold text-lg">{selectedAppt.clientName}</h3>
+                <p className="text-xs text-[#666]">{selectedAppt.svc?.name} com {selectedAppt.prof.name}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 py-4 border-y border-white/5">
+              <div className="flex justify-between text-sm">
+                <span className="text-[#666]">Horário</span>
+                <span>{String(selectedAppt.hour).padStart(2,'0')}:{String(selectedAppt.min).padStart(2,'0')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#666]">Valor</span>
+                <span className="text-[#c9973a] font-bold">R$ {selectedAppt.svc?.price}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#666]">WhatsApp</span>
+                <span>{selectedAppt.phone}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#666]">Status</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${selectedAppt.status === 'concluido' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                  {selectedAppt.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2">
+              <button 
+                onClick={() => updateStatus(selectedAppt.id, 'concluido')}
+                className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-colors"
+              >
+                ✓ Marcar como Concluído
+              </button>
+              <button 
+                onClick={() => deleteAppt(selectedAppt.id)}
+                className="w-full py-3 text-red-500/70 hover:text-red-500 text-sm transition-colors"
+              >
+                ✕ Cancelar Agendamento
+              </button>
+              <button 
+                onClick={() => setSelectedAppt(null)} 
+                className="w-full py-2 text-[#444] text-xs uppercase tracking-widest mt-2"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-[#1c1c1c] border border-white/10 rounded-full text-sm shadow-2xl transition-all duration-500 z-[200] ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+        {toast.msg}
+      </div>
+    </div>
+  );
+}
+
