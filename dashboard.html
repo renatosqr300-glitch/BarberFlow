@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarberFlow — Painel Administrativo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark: #0c0c0c;
+            --dark2: #141414;
+            --dark3: #1c1c1c;
+            --dark4: #242424;
+            --gold: #c9973a;
+            --gold-l: #e8b04a;
+            --gold-d: rgba(201,151,58,0.12);
+            --border: rgba(255,255,255,0.06);
+            --text: #f0ece4;
+            --muted: #666;
+            --muted2: #444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--dark);
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            height: 60px;
+            background: var(--dark2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+        .logo span { color: var(--gold); }
+
+        .btn-new {
+            background: linear-gradient(135deg, var(--gold), #b8832a);
+            border: none;
+            color: #000;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        /* MAIN LAYOUT */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px;
+            background: var(--dark2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--gold-l);
+            background: var(--gold-d);
+        }
+
+        /* CONTENT AREA */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* AGENDA GRID */
+        .agenda-header {
+            display: flex;
+            background: var(--dark2);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .time-gutter { width: 60px; border-right: 1px solid var(--border); }
+        
+        .prof-col-header {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px;
+            text-align: center;
+            border-right: 1px solid var(--border);
+        }
+
+        .grid-scroll {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        .grid-container {
+            display: flex;
+            min-height: 900px; /* 15 slots de 60px */
+            width: fit-content;
+            min-width: 100%;
+        }
+
+        .time-column {
+            width: 60px;
+            background: var(--dark2);
+            border-right: 1px solid var(--border);
+        }
+
+        .time-slot {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            padding-top: 10px;
+            font-size: 0.7rem;
+            color: var(--muted2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .prof-column {
+            flex: 1;
+            min-width: 150px;
+            border-right: 1px solid var(--border);
+            position: relative;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px);
+            background-size: 100% 60px;
+        }
+
+        /* APPOINTMENT CARD */
+        .appointment {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            background: var(--gold-d);
+            border-left: 3px solid var(--gold);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--dark2);
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        input, select {
+            width: 100%;
+            background: var(--dark3);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 10px;
+            color: #fff;
+            margin: 10px 0 20px;
+        }
+
+        @media (max-width: 800px) {
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="logo">BARBER<span>FLOW</span></div>
+    <button class="btn-new" onclick="document.getElementById('modal').style.display='flex'">＋ Novo</button>
+</div>
+
+<div class="main-container">
+    <aside class="sidebar">
+        <div class="nav-item active">📅 Agenda</div>
+        <div class="nav-item">👥 Clientes</div>
+        <div class="nav-item">✂️ Serviços</div>
+        <div class="nav-item">📊 Relatórios</div>
+        <div class="nav-item" style="margin-top: auto; color: #ff4444;" onclick="location.href='index.html'">🚪 Sair</div>
+    </aside>
+
+    <main class="content-area">
+        <div class="agenda-header" id="header-row">
+            <div class="time-gutter"></div>
+            <!-- Dinâmico -->
+        </div>
+
+        <div class="grid-scroll">
+            <div class="grid-container" id="grid-body">
+                <div class="time-column" id="time-column">
+                    <!-- Dinâmico -->
+                </div>
+                <!-- Colunas dos barbeiros dinâmicas -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target==this) this.style.display='none'">
+    <div class="modal">
+        <h2 style="font-family: 'Bebas Neue'; letter-spacing: 2px;">Novo Agendamento</h2>
+        <label>CLIENTE</label>
+        <input type="text" placeholder="Nome do cliente">
+        <label>BARBEIRO</label>
+        <select id="select-barbeiro"></select>
+        <button class="btn-new" style="width: 100%; padding: 15px;" onclick="document.getElementById('modal').style.display='none'">Confirmar</button>
+    </div>
+</div>
+
+<script>
+    const BARBEIROS = [
+        { id: 1, nome: 'João Silva', iniciais: 'JS' },
+        { id: 2, nome: 'Pedro Alves', iniciais: 'PA' },
+        { id: 3, nome: 'Lucas Costa', iniciais: 'LC' }
+    ];
+
+    function init() {
+        const header = document.getElementById('header-row');
+        const gridBody = document.getElementById('grid-body');
+        const timeCol = document.getElementById('time-column');
+        const select = document.getElementById('select-barbeiro');
+
+        // Renderizar Horários
+        for(let h=8; h<=20; h++) {
+            timeCol.innerHTML += `<div class="time-slot">${h}:00</div>`;
+        }
+
+        // Renderizar Colunas e Header
+        BARBEIROS.forEach(b => {
+            header.innerHTML += `<div class="prof-col-header">${b.nome}</div>`;
+            select.innerHTML += `<option>${b.nome}</option>`;
+
+            const col = document.createElement('div');
+            col.className = 'prof-column';
+            
+            // Exemplo de agendamento fictício
+            if(b.id === 1) {
+                col.innerHTML += `
+                    <div class="appointment" style="top: 120px; height: 55px;">
+                        <strong>Marcos Oliveira</strong><br>Degradê
+                    </div>
+                `;
+            }
+            
+            gridBody.appendChild(col);
+        });
+    }
+
+    init();
+</script>
+
+</body>
+</html>
+
