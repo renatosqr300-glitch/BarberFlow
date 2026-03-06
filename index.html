@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarberFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #0a0a0a; font-family: 'DM Sans', sans-serif; color: #f0ece4; overflow-x: hidden; }
+        
+        /* Navbar */
+        nav { position: fixed; top: 0; width: 100%; padding: 20px; z-index: 100; text-align: center; background: rgba(10,10,10,0.8); backdrop-filter: blur(5px); }
+        .logo { font-family: 'Bebas Neue', cursive; font-size: 2rem; letter-spacing: 3px; color: #f0ece4; text-decoration: none; }
+        .logo span { color: #c9973a; }
+
+        /* Hero */
+        .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; position: relative; }
+        
+        /* O segredo do clique: o fundo nao pode ter eventos de toque */
+        .bg-efeito { position: absolute; inset: 0; background: radial-gradient(circle at 50% 20%, rgba(201,151,58,0.15), transparent 80%); pointer-events: none; z-index: 1; }
+
+        .conteudo { position: relative; z-index: 10; width: 100%; max-width: 500px; }
+        
+        h1 { font-family: 'Bebas Neue', cursive; font-size: 4rem; line-height: 1; margin-bottom: 20px; letter-spacing: 2px; }
+        h1 span { color: #c9973a; }
+        
+        p { color: #a3a3a3; margin-bottom: 40px; line-height: 1.6; font-size: 1.1rem; }
+
+        /* Botao Grande para facilitar o toque no iPhone */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #c9973a, #a67c2e);
+            color: #0a0a0a;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            box-shadow: 0 10px 25px rgba(201,151,58,0.3);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); background: #e8b04a; }
+    </style>
+</head>
+<body>
+
+    <nav><a href="#" class="logo">BARBER<span>FLOW</span></a></nav>
+
+    <section class="hero">
+        <div class="bg-efeito"></div>
+        
+        <div class="conteudo">
+            <h1>SUA BARBEARIA<br><span>NO CONTROLE</span></h1>
+            <p>O sistema de agendamento que coloca dinheiro no seu bolso e ordem na sua agenda.</p>
+            
+            <a href="barberflow-login.html" class="btn">
+                ✂️ COMEÇAR GRÁTIS
+            </a>
+        </div>
+    </section>
+
+</body>
+</html>
+
