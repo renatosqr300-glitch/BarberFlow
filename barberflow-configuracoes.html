@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarberFlow — Configurações</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dark:   #0c0c0c;
+    --dark2:  #141414;
+    --dark3:  #1c1c1c;
+    --dark4:  #242424;
+    --gold:   #c9973a;
+    --gold-l: #e8b04a;
+    --gold-d: rgba(201,151,58,0.12);
+    --border: rgba(255,255,255,0.07);
+    --text:   #f0ece4;
+    --muted:  #666;
+    --green:  #10b981;
+    --red:    #ef4444;
+    --radius: 14px;
+  }
+
+- { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+background: var(–dark);
+font-family: ‘DM Sans’, sans-serif;
+color: var(–text);
+min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+height: 58px;
+background: var(–dark2);
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+padding: 0 24px;
+gap: 16px;
+position: sticky;
+top: 0;
+z-index: 100;
+}
+
+.logo {
+font-family: ‘Bebas Neue’, cursive;
+font-size: 1.6rem;
+letter-spacing: 3px;
+}
+.logo span { color: var(–gold); }
+
+.topbar-sep { width:1px; height:28px; background:var(–border); }
+
+.topbar-title {
+font-size: 0.85rem;
+color: var(–muted);
+}
+
+.topbar-right {
+margin-left: auto;
+display: flex;
+gap: 10px;
+}
+
+.btn-save-top {
+background: linear-gradient(135deg, var(–gold), #b8832a);
+border: none;
+color: #0c0c0c;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.82rem;
+font-weight: 700;
+padding: 8px 20px;
+border-radius: 8px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.btn-save-top:hover { box-shadow: 0 4px 16px rgba(201,151,58,0.3); }
+
+/* ── LAYOUT ── */
+.layout {
+display: flex;
+max-width: 1100px;
+margin: 0 auto;
+padding: 24px 20px;
+gap: 24px;
+}
+
+/* ── LEFT NAV ── */
+.settings-nav {
+width: 220px;
+flex-shrink: 0;
+}
+
+.nav-group { margin-bottom: 24px; }
+
+.nav-group-label {
+font-size: 0.65rem;
+font-weight: 600;
+color: var(–muted);
+letter-spacing: 2px;
+text-transform: uppercase;
+margin-bottom: 8px;
+padding: 0 10px;
+}
+
+.nav-item {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 10px 12px;
+border-radius: 10px;
+cursor: pointer;
+font-size: 0.85rem;
+color: var(–muted);
+transition: all 0.15s;
+margin-bottom: 2px;
+}
+.nav-item:hover { background: var(–dark3); color: var(–text); }
+.nav-item.active { background: var(–gold-d); color: var(–gold-l); border: 1px solid rgba(201,151,58,0.2); }
+.nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+/* ── CONTENT ── */
+.settings-content { flex: 1; min-width: 0; }
+
+.settings-panel { display: none; animation: fadeUp 0.25s ease both; }
+.settings-panel.active { display: block; }
+
+@keyframes fadeUp {
+from { opacity:0; transform:translateY(10px); }
+to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── CARDS ── */
+.card {
+background: var(–dark2);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+margin-bottom: 16px;
+overflow: hidden;
+}
+
+.card-header {
+padding: 18px 20px 14px;
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.card-title {
+font-family: ‘Bebas Neue’, cursive;
+font-size: 1.1rem;
+letter-spacing: 2px;
+color: var(–text);
+}
+
+.card-sub {
+font-size: 0.75rem;
+color: var(–muted);
+margin-top: 2px;
+}
+
+.card-body { padding: 20px; }
+
+/* ── FORM FIELDS ── */
+.field-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 14px;
+margin-bottom: 14px;
+}
+
+.field-row.full { grid-template-columns: 1fr; }
+.field-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+
+.field label {
+font-size: 0.72rem;
+font-weight: 600;
+color: var(–muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+}
+
+.field input,
+.field select,
+.field textarea {
+background: var(–dark3);
+border: 1.5px solid var(–border);
+border-radius: 10px;
+padding: 11px 14px;
+color: var(–text);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.88rem;
+outline: none;
+transition: border-color 0.15s, box-shadow 0.15s;
+width: 100%;
+}
+
+.field select { cursor: pointer; }
+.field select option { background: var(–dark2); }
+.field textarea { resize: vertical; min-height: 80px; }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+border-color: var(–gold);
+box-shadow: 0 0 0 3px rgba(201,151,58,0.1);
+}
+.field input::placeholder,
+.field textarea::placeholder { color: #3a3a3a; }
+
+/* ── TOGGLE ── */
+.toggle-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 14px 0;
+border-bottom: 1px solid var(–border);
+}
+.toggle-row:last-child { border-bottom: none; }
+
+.toggle-info h4 { font-size: 0.88rem; font-weight: 500; color: var(–text); }
+.toggle-info p  { font-size: 0.75rem; color: var(–muted); margin-top: 2px; }
+
+.toggle {
+position: relative;
+width: 44px; height: 24px;
+flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+position: absolute;
+inset: 0;
+background: var(–dark4);
+border: 1px solid var(–border);
+border-radius: 24px;
+cursor: pointer;
+transition: all 0.2s;
+}
+.toggle-slider::before {
+content: ‘’;
+position: absolute;
+width: 18px; height: 18px;
+left: 3px; top: 2px;
+background: var(–muted);
+border-radius: 50%;
+transition: all 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(–gold-d); border-color: var(–gold); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(–gold); }
+
+/* ── DAYS SELECTOR ── */
+.days-grid {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+margin-top: 4px;
+}
+
+.day-btn {
+width: 40px; height: 40px;
+border-radius: 10px;
+background: var(–dark3);
+border: 1.5px solid var(–border);
+color: var(–muted);
+font-size: 0.72rem;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.15s;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.day-btn:hover { border-color: rgba(201,151,58,0.3); color: var(–text); }
+.day-btn.on { background: var(–gold-d); border-color: var(–gold); color: var(–gold-l); }
+
+/* ── PROFESSIONAL LIST ── */
+.prof-item {
+display: flex;
+align-items: center;
+gap: 14px;
+padding: 14px 0;
+border-bottom: 1px solid var(–border);
+}
+.prof-item:last-child { border-bottom: none; }
+
+.prof-avatar {
+width: 44px; height: 44px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 0.9rem;
+font-weight: 700;
+color: white;
+flex-shrink: 0;
+}
+
+.prof-info { flex: 1; min-width: 0; }
+.prof-name { font-size: 0.9rem; font-weight: 600; color: var(–text); }
+.prof-role { font-size: 0.75rem; color: var(–muted); margin-top: 2px; }
+
+.prof-actions { display: flex; gap: 8px; }
+
+.btn-icon {
+width: 32px; height: 32px;
+border-radius: 8px;
+border: 1px solid var(–border);
+background: var(–dark3);
+color: var(–muted);
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 0.85rem;
+transition: all 0.15s;
+}
+.btn-icon:hover { color: var(–text); background: var(–dark4); }
+.btn-icon.danger:hover { color: var(–red); border-color: rgba(239,68,68,0.3); }
+
+/* ── SERVICE LIST ── */
+.service-item {
+display: flex;
+align-items: center;
+gap: 14px;
+padding: 14px 0;
+border-bottom: 1px solid var(–border);
+}
+.service-item:last-child { border-bottom: none; }
+
+.service-icon-box {
+width: 42px; height: 42px;
+border-radius: 11px;
+background: var(–dark4);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.1rem;
+flex-shrink: 0;
+}
+
+.service-info { flex: 1; }
+.service-name { font-size: 0.88rem; font-weight: 600; color: var(–text); }
+.service-meta {
+display: flex;
+gap: 12px;
+margin-top: 3px;
+}
+.service-meta span { font-size: 0.72rem; color: var(–muted); }
+.service-meta .price { color: var(–gold-l); font-weight: 600; }
+
+/* ── ADD BUTTON ── */
+.btn-add {
+width: 100%;
+padding: 12px;
+background: transparent;
+border: 1.5px dashed rgba(201,151,58,0.25);
+border-radius: 11px;
+color: var(–gold);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.85rem;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.15s;
+margin-top: 14px;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+}
+.btn-add:hover { background: var(–gold-d); border-color: var(–gold); }
+
+/* ── LINK BOX ── */
+.link-box {
+display: flex;
+gap: 10px;
+align-items: center;
+background: var(–dark3);
+border: 1px solid var(–border);
+border-radius: 11px;
+padding: 12px 16px;
+}
+
+.link-box .link-url {
+flex: 1;
+font-size: 0.82rem;
+color: var(–gold-l);
+word-break: break-all;
+}
+
+.btn-copy {
+background: var(–dark4);
+border: 1px solid var(–border);
+color: var(–muted);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.75rem;
+padding: 7px 14px;
+border-radius: 8px;
+cursor: pointer;
+white-space: nowrap;
+transition: all 0.15s;
+flex-shrink: 0;
+}
+.btn-copy:hover { color: var(–text); background: var(–dark3); }
+.btn-copy.copied { color: var(–green); border-color: rgba(16,185,129,0.3); }
+
+/* ── PLAN CARD ── */
+.plan-card {
+background: var(–gold-d);
+border: 1px solid rgba(201,151,58,0.25);
+border-radius: var(–radius);
+padding: 20px;
+display: flex;
+align-items: center;
+gap: 16px;
+margin-bottom: 16px;
+}
+
+.plan-icon {
+width: 52px; height: 52px;
+background: rgba(201,151,58,0.2);
+border-radius: 14px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5rem;
+flex-shrink: 0;
+}
+
+.plan-info { flex: 1; }
+.plan-name { font-family: ‘Bebas Neue’, cursive; font-size: 1.3rem; letter-spacing: 2px; color: var(–gold-l); }
+.plan-desc { font-size: 0.78rem; color: var(–muted); margin-top: 2px; }
+
+.trial-badge {
+background: var(–gold);
+color: #0c0c0c;
+font-size: 0.72rem;
+font-weight: 700;
+padding: 5px 12px;
+border-radius: 20px;
+white-space: nowrap;
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.7);
+z-index: 200;
+display: none;
+align-items: center;
+justify-content: center;
+padding: 20px;
+backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+background: var(–dark2);
+border: 1px solid var(–border);
+border-radius: 16px;
+width: 100%;
+max-width: 440px;
+padding: 28px;
+animation: fadeUp 0.25s ease;
+}
+
+.modal-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 22px;
+}
+
+.modal-header h3 {
+font-family: ‘Bebas Neue’, cursive;
+font-size: 1.5rem;
+letter-spacing: 2px;
+}
+
+.modal-close {
+width: 32px; height: 32px;
+background: var(–dark3);
+border: 1px solid var(–border);
+color: var(–muted);
+border-radius: 8px;
+cursor: pointer;
+font-size: 1rem;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.15s;
+}
+.modal-close:hover { color: var(–text); }
+
+.modal-field { margin-bottom: 14px; }
+.modal-field label {
+display: block;
+font-size: 0.72rem;
+font-weight: 600;
+color: var(–muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-bottom: 7px;
+}
+
+.modal-field input,
+.modal-field select {
+width: 100%;
+background: var(–dark3);
+border: 1.5px solid var(–border);
+border-radius: 10px;
+padding: 11px 14px;
+color: var(–text);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.88rem;
+outline: none;
+transition: border-color 0.15s;
+}
+.modal-field input:focus,
+.modal-field select:focus { border-color: var(–gold); }
+.modal-field input::placeholder { color: #3a3a3a; }
+.modal-field select option { background: var(–dark2); }
+
+.modal-row { display: flex; gap: 12px; }
+.modal-row .modal-field { flex: 1; }
+
+.modal-footer { display: flex; gap: 10px; margin-top: 22px; }
+
+.btn-cancel {
+flex: 1; padding: 12px;
+background: var(–dark3);
+border: 1px solid var(–border);
+color: var(–muted);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.85rem;
+border-radius: 9px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.btn-cancel:hover { color: var(–text); }
+
+.btn-save {
+flex: 2; padding: 12px;
+background: linear-gradient(135deg, var(–gold), #b8832a);
+border: none;
+color: #0c0c0c;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.88rem;
+font-weight: 700;
+border-radius: 9px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.btn-save:hover { box-shadow: 0 4px 16px rgba(201,151,58,0.3); }
+
+/* ── TOAST ── */
+.toast {
+position: fixed;
+bottom: 24px; left: 50%;
+transform: translateX(-50%) translateY(80px);
+background: var(–dark3);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 12px 20px;
+font-size: 0.84rem;
+color: var(–text);
+z-index: 999;
+transition: transform 0.3s ease;
+white-space: nowrap;
+box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(–dark); }
+::-webkit-scrollbar-thumb { background: var(–dark4); border-radius: 3px; }
+
+@media (max-width: 768px) {
+.settings-nav { display: none; }
+.layout { padding: 16px; }
+.field-row { grid-template-columns: 1fr; }
+.field-row.triple { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+</head>
+<body>
+
+<!-- TOPBAR -->
+
+<div class="topbar">
+  <div class="logo">BARBER<span>FLOW</span></div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Configurações</div>
+  <div class="topbar-right">
+    <button class="btn-save-top" onclick="saveAll()">✓ Salvar Alterações</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT NAV -->
+
+  <div class="settings-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Geral</div>
+      <div class="nav-item active" onclick="showPanel('barbearia', this)">
+        <span class="nav-icon">🏪</span> Minha Barbearia
+      </div>
+      <div class="nav-item" onclick="showPanel('horarios', this)">
+        <span class="nav-icon">🕐</span> Horários
+      </div>
+      <div class="nav-item" onclick="showPanel('link', this)">
+        <span class="nav-icon">🔗</span> Link de Agendamento
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Equipe</div>
+      <div class="nav-item" onclick="showPanel('profissionais', this)">
+        <span class="nav-icon">👥</span> Profissionais
+      </div>
+      <div class="nav-item" onclick="showPanel('servicos', this)">
+        <span class="nav-icon">✂️</span> Serviços
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Sistema</div>
+      <div class="nav-item" onclick="showPanel('notificacoes', this)">
+        <span class="nav-icon">🔔</span> Notificações
+      </div>
+      <div class="nav-item" onclick="showPanel('assinatura', this)">
+        <span class="nav-icon">💳</span> Assinatura
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+
+  <div class="settings-content">
+
+```
+<!-- BARBEARIA -->
+<div class="settings-panel active" id="panel-barbearia">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Dados da Barbearia</div>
+        <div class="card-sub">Informações exibidas para seus clientes</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row full">
+        <div class="field">
+          <label>Nome da Barbearia</label>
+          <input type="text" value="Barbearia do João" id="shopName">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Telefone / WhatsApp</label>
+          <input type="tel" value="(11) 99999-9999" id="shopPhone">
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" value="joao@barbearia.com" id="shopEmail">
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field">
+          <label>Endereço</label>
+          <input type="text" value="Rua das Flores, 123 — São Paulo, SP" id="shopAddress">
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field">
+          <label>Descrição (aparece no link de agendamento)</label>
+          <textarea id="shopDesc">Barbearia especializada em cortes modernos e barba. Atendimento personalizado com os melhores profissionais.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Conta do Dono</div>
+        <div class="card-sub">Suas informações de acesso</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Seu Nome</label>
+          <input type="text" value="João Silva">
+        </div>
+        <div class="field">
+          <label>E-mail de Acesso</label>
+          <input type="email" value="joao@barbearia.com">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Nova Senha</label>
+          <input type="password" placeholder="Deixe em branco para não alterar">
+        </div>
+        <div class="field">
+          <label>Confirmar Nova Senha</label>
+          <input type="password" placeholder="••••••••">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HORÁRIOS -->
+<div class="settings-panel" id="panel-horarios">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Horário de Funcionamento</div>
+        <div class="card-sub">Define os slots disponíveis para agendamento</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Abertura</label>
+          <input type="time" value="09:00">
+        </div>
+        <div class="field">
+          <label>Fechamento</label>
+          <input type="time" value="20:00">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Intervalo entre slots</label>
+          <select>
+            <option value="15">15 minutos</option>
+            <option value="30" selected>30 minutos</option>
+            <option value="60">1 hora</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Antecedência mínima</label>
+          <select>
+            <option value="0">Sem mínimo</option>
+            <option value="60" selected>1 hora antes</option>
+            <option value="120">2 horas antes</option>
+            <option value="1440">1 dia antes</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Dias de Funcionamento</label>
+        <div class="days-grid" id="daysGrid">
+          <div class="day-btn on" onclick="toggleDay(this)">Seg</div>
+          <div class="day-btn on" onclick="toggleDay(this)">Ter</div>
+          <div class="day-btn on" onclick="toggleDay(this)">Qua</div>
+          <div class="day-btn on" onclick="toggleDay(this)">Qui</div>
+          <div class="day-btn on" onclick="toggleDay(this)">Sex</div>
+          <div class="day-btn on" onclick="toggleDay(this)">Sáb</div>
+          <div class="day-btn" onclick="toggleDay(this)">Dom</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LINK -->
+<div class="settings-panel" id="panel-link">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Link de Agendamento</div>
+        <div class="card-sub">Compartilhe este link com seus clientes</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row full">
+        <div class="field">
+          <label>Seu Link Personalizado</label>
+          <div class="link-box">
+            <span class="link-url" id="linkUrl">barberflow.app/barbearia-do-joao</span>
+            <button class="btn-copy" id="btnCopy" onclick="copyLink()">Copiar</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-row full" style="margin-top:8px">
+        <div class="field">
+          <label>Personalizar slug (parte final do link)</label>
+          <input type="text" value="barbearia-do-joao" id="slugInput" oninput="updateSlug(this.value)" placeholder="minha-barbearia">
+        </div>
+      </div>
+      <div style="margin-top:20px">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Agendamentos Online Ativos</h4>
+            <p>Se desativado, o link exibe mensagem de indisponível</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Mostrar preços para o cliente</h4>
+            <p>Exibe o valor de cada serviço no link de agendamento</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Permitir cancelamento pelo cliente</h4>
+            <p>Cliente pode cancelar até 2h antes pelo link</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFISSIONAIS -->
+<div class="settings-panel" id="panel-profissionais">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Profissionais</div>
+        <div class="card-sub">Gerencie sua equipe (máx. 5 no plano atual)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="profList"></div>
+      <button class="btn-add" onclick="openProfModal()">
+        ＋ Adicionar Profissional
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVIÇOS -->
+<div class="settings-panel" id="panel-servicos">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Serviços</div>
+        <div class="card-sub">Configure os serviços oferecidos</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="servicesList"></div>
+      <button class="btn-add" onclick="openServiceModal()">
+        ＋ Adicionar Serviço
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICAÇÕES -->
+<div class="settings-panel" id="panel-notificacoes">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Notificações para o Cliente</div>
+        <div class="card-sub">Mensagens automáticas via WhatsApp</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Confirmação de Agendamento</h4>
+          <p>Enviada imediatamente após o cliente agendar</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Lembrete 24h antes</h4>
+          <p>Enviado um dia antes do horário marcado</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Lembrete 2h antes</h4>
+          <p>Enviado duas horas antes do horário</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Notificação de Cancelamento</h4>
+          <p>Avisa o cliente quando o agendamento é cancelado</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Notificações para o Dono</div>
+        <div class="card-sub">Alertas no seu WhatsApp</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Novo agendamento criado</h4>
+          <p>Avisa quando um cliente agenda pelo link</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Cancelamento de cliente</h4>
+          <p>Avisa quando um cliente cancela o horário</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Resumo diário</h4>
+          <p>Receba todo dia às 8h um resumo da agenda</p>
+        </div>
+        <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSINATURA -->
+<div class="settings-panel" id="panel-assinatura">
+  <div class="plan-card">
+    <div class="plan-icon">⭐</div>
+    <div class="plan-info">
+      <div class="plan-name">Plano Pro — R$ 20,90/mês</div>
+      <div class="plan-desc">Até 5 profissionais · Agendamentos ilimitados · Notificações WhatsApp</div>
+    </div>
+    <div class="trial-badge">7 dias grátis</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Status da Assinatura</div>
+        <div class="card-sub">Seu período trial termina em 7 dias</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Status</h4>
+          <p>Período de avaliação gratuita</p>
+        </div>
+        <span style="font-size:0.8rem;background:rgba(16,185,129,0.12);color:#10b981;padding:5px 12px;border-radius:20px;font-weight:600;">✓ Trial Ativo</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>Próxima cobrança</h4>
+          <p>Após o trial, R$ 20,90/mês no cartão</p>
+        </div>
+        <span style="font-size:0.82rem;color:var(--muted)">em 7 dias</span>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn-save" style="width:100%;padding:13px;font-size:0.9rem;" onclick="showToast('💳 Redirecionando para o pagamento...')">
+          Assinar agora — R$ 20,90/mês
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">O que está incluso</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>✅ Até 5 profissionais</h4></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>✅ Agendamentos ilimitados</h4></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>✅ Link de agendamento personalizado</h4></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>✅ Notificações automáticas no WhatsApp</h4></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>✅ Multi-agenda em tempo real</h4></div>
+      </div>
+      <div class="toggle-row" style="border:none">
+        <div class="toggle-info"><h4>✅ Suporte via WhatsApp</h4></div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- MODAL: Profissional -->
+
+<div class="modal-overlay" id="profModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="profModalTitle">Novo Profissional</h3>
+      <button class="modal-close" onclick="closeProfModal()">✕</button>
+    </div>
+    <div class="modal-field">
+      <label>Nome Completo</label>
+      <input type="text" id="mProfName" placeholder="Ex: Carlos Barbeiro">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Cargo / Especialidade</label>
+        <input type="text" id="mProfRole" placeholder="Ex: Barbeiro Sênior">
+      </div>
+      <div class="modal-field">
+        <label>Cor na Agenda</label>
+        <select id="mProfColor">
+          <option value="#3b82f6">🔵 Azul</option>
+          <option value="#10b981">🟢 Verde</option>
+          <option value="#f59e0b">🟡 Âmbar</option>
+          <option value="#ec4899">🩷 Rosa</option>
+          <option value="#8b5cf6">🟣 Roxo</option>
+          <option value="#ef4444">🔴 Vermelho</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Entrada</label>
+        <input type="time" id="mProfIn" value="09:00">
+      </div>
+      <div class="modal-field">
+        <label>Saída</label>
+        <input type="time" id="mProfOut" value="18:00">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProfModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveProf()">✓ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Serviço -->
+
+<div class="modal-overlay" id="serviceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="serviceModalTitle">Novo Serviço</h3>
+      <button class="modal-close" onclick="closeServiceModal()">✕</button>
+    </div>
+    <div class="modal-field">
+      <label>Nome do Serviço</label>
+      <input type="text" id="mSvcName" placeholder="Ex: Sobrancelha, Progressiva...">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Ícone (emoji)</label>
+        <input type="text" id="mSvcIcon" placeholder="✂️" maxlength="2">
+      </div>
+      <div class="modal-field">
+        <label>Preço (R$)</label>
+        <input type="number" id="mSvcPrice" placeholder="0" min="0" step="0.50">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Duração (minutos)</label>
+      <select id="mSvcDuration">
+        <option value="15">15 minutos</option>
+        <option value="30" selected>30 minutos</option>
+        <option value="45">45 minutos</option>
+        <option value="60">1 hora</option>
+        <option value="90">1h 30min</option>
+        <option value="120">2 horas</option>
+        <option value="180">3 horas</option>
+        <option value="240">4 horas</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeServiceModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveService()">✓ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+let profs = [
+  { id:1, name:'João Silva',   initials:'JS', color:'#3b82f6', role:'Barbeiro Sênior',  entry:'09:00', exit:'18:00' },
+  { id:2, name:'Pedro Alves',  initials:'PA', color:'#10b981', role:'Barbeiro',          entry:'09:00', exit:'18:00' },
+  { id:3, name:'Lucas Costa',  initials:'LC', color:'#f59e0b', role:'Barbeiro',          entry:'10:00', exit:'19:00' },
+  { id:4, name:'Rafael Souza', initials:'RS', color:'#ec4899', role:'Barbeiro',          entry:'09:00', exit:'18:00' },
+  { id:5, name:'Bruno Lima',   initials:'BL', color:'#8b5cf6', role:'Aprendiz',          entry:'10:00', exit:'17:00' },
+];
+
+let services = [
+  { id:1, icon:'✂️', name:'Corte Degradê',      price:45,  duration:30  },
+  { id:2, icon:'🪒', name:'Corte + Barba',       price:65,  duration:60  },
+  { id:3, icon:'🧔', name:'Barba Completa',      price:35,  duration:30  },
+  { id:4, icon:'💆', name:'Hidratação Capilar',  price:55,  duration:45  },
+  { id:5, icon:'🎨', name:'Pigmentação',         price:80,  duration:90  },
+  { id:6, icon:'💈', name:'Corte Simples',       price:30,  duration:30  },
+];
+
+let profIdCounter = 6;
+let svcIdCounter  = 7;
+let editingProfId = null;
+let editingSvcId  = null;
+
+// ── PANELS ───────────────────────────────────────
+function showPanel(id, el) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── PROFISSIONAIS ─────────────────────────────────
+function renderProfs() {
+  document.getElementById('profList').innerHTML = profs.map(p => `
+    <div class="prof-item">
+      <div class="prof-avatar" style="background:${p.color}">${p.initials}</div>
+      <div class="prof-info">
+        <div class="prof-name">${p.name}</div>
+        <div class="prof-role">${p.role} · ${p.entry} às ${p.exit}</div>
+      </div>
+      <div class="prof-actions">
+        <button class="btn-icon" onclick="editProf(${p.id})" title="Editar">✏️</button>
+        <button class="btn-icon danger" onclick="deleteProf(${p.id})" title="Remover">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openProfModal(editId = null) {
+  editingProfId = editId;
+  if (editId) {
+    const p = profs.find(x => x.id === editId);
+    document.getElementById('profModalTitle').textContent = 'Editar Profissional';
+    document.getElementById('mProfName').value  = p.name;
+    document.getElementById('mProfRole').value  = p.role;
+    document.getElementById('mProfColor').value = p.color;
+    document.getElementById('mProfIn').value    = p.entry;
+    document.getElementById('mProfOut').value   = p.exit;
+  } else {
+    document.getElementById('profModalTitle').textContent = 'Novo Profissional';
+    document.getElementById('mProfName').value  = '';
+    document.getElementById('mProfRole').value  = '';
+    document.getElementById('mProfIn').value    = '09:00';
+    document.getElementById('mProfOut').value   = '18:00';
+  }
+  document.getElementById('profModal').classList.add('open');
+}
+
+function editProf(id) { openProfModal(id); }
+
+function deleteProf(id) {
+  if (profs.length <= 1) return showToast('⚠️ Deve haver ao menos 1 profissional');
+  profs = profs.filter(p => p.id !== id);
+  renderProfs();
+  showToast('🗑 Profissional removido');
+}
+
+function closeProfModal() {
+  document.getElementById('profModal').classList.remove('open');
+  editingProfId = null;
+}
+
+function saveProf() {
+  const name  = document.getElementById('mProfName').value.trim();
+  const role  = document.getElementById('mProfRole').value.trim();
+  const color = document.getElementById('mProfColor').value;
+  const entry = document.getElementById('mProfIn').value;
+  const exit  = document.getElementById('mProfOut').value;
+
+  if (!name) return showToast('⚠️ Informe o nome do profissional');
+
+  const initials = name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+
+  if (editingProfId) {
+    const p = profs.find(x => x.id === editingProfId);
+    Object.assign(p, { name, role, color, entry, exit, initials });
+    showToast('✅ Profissional atualizado!');
+  } else {
+    if (profs.length >= 5) return showToast('⚠️ Limite de 5 profissionais atingido');
+    profs.push({ id: profIdCounter++, name, initials, color, role, entry, exit });
+    showToast('✅ Profissional adicionado!');
+  }
+
+  renderProfs();
+  closeProfModal();
+}
+
+// ── SERVIÇOS ─────────────────────────────────────
+function renderServices() {
+  const dur = { 15:'15min', 30:'30min', 45:'45min', 60:'1h', 90:'1h30', 120:'2h', 180:'3h', 240:'4h' };
+  document.getElementById('servicesList').innerHTML = services.map(s => `
+    <div class="service-item">
+      <div class="service-icon-box">${s.icon}</div>
+      <div class="service-info">
+        <div class="service-name">${s.name}</div>
+        <div class="service-meta">
+          <span>⏱ ${dur[s.duration] || s.duration + 'min'}</span>
+          <span class="price">R$ ${s.price},00</span>
+        </div>
+      </div>
+      <div class="prof-actions">
+        <button class="btn-icon" onclick="editService(${s.id})">✏️</button>
+        <button class="btn-icon danger" onclick="deleteService(${s.id})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openServiceModal(editId = null) {
+  editingSvcId = editId;
+  if (editId) {
+    const s = services.find(x => x.id === editId);
+    document.getElementById('serviceModalTitle').textContent = 'Editar Serviço';
+    document.getElementById('mSvcName').value     = s.name;
+    document.getElementById('mSvcIcon').value     = s.icon;
+    document.getElementById('mSvcPrice').value    = s.price;
+    document.getElementById('mSvcDuration').value = s.duration;
+  } else {
+    document.getElementById('serviceModalTitle').textContent = 'Novo Serviço';
+    document.getElementById('mSvcName').value     = '';
+    document.getElementById('mSvcIcon').value     = '✂️';
+    document.getElementById('mSvcPrice').value    = '';
+    document.getElementById('mSvcDuration').value = '30';
+  }
+  document.getElementById('serviceModal').classList.add('open');
+}
+
+function editService(id) { openServiceModal(id); }
+
+function deleteService(id) {
+  if (services.length <= 1) return showToast('⚠️ Deve haver ao menos 1 serviço');
+  services = services.filter(s => s.id !== id);
+  renderServices();
+  showToast('🗑 Serviço removido');
+}
+
+function closeServiceModal() {
+  document.getElementById('serviceModal').classList.remove('open');
+  editingSvcId = null;
+}
+
+function saveService() {
+  const name     = document.getElementById('mSvcName').value.trim();
+  const icon     = document.getElementById('mSvcIcon').value.trim() || '✂️';
+  const price    = parseFloat(document.getElementById('mSvcPrice').value);
+  const duration = parseInt(document.getElementById('mSvcDuration').value);
+
+  if (!name) return showToast('⚠️ Informe o nome do serviço');
+  if (!price || price <= 0) return showToast('⚠️ Informe um preço válido');
+
+  if (editingSvcId) {
+    const s = services.find(x => x.id === editingSvcId);
+    Object.assign(s, { name, icon, price, duration });
+    showToast('✅ Serviço atualizado!');
+  } else {
+    services.push({ id: svcIdCounter++, icon, name, price, duration });
+    showToast('✅ Serviço adicionado!');
+  }
+
+  renderServices();
+  closeServiceModal();
+}
+
+// ── HELPERS ───────────────────────────────────────
+function toggleDay(el) { el.classList.toggle('on'); }
+
+function updateSlug(val) {
+  const slug = val.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  document.getElementById('linkUrl').textContent = 'barberflow.app/' + slug;
+}
+
+function copyLink() {
+  const url = document.getElementById('linkUrl').textContent;
+  navigator.clipboard.writeText('https://' + url).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = '✓ Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+  showToast('🔗 Link copiado para a área de transferência!');
+}
+
+function saveAll() { showToast('✅ Configurações salvas com sucesso!'); }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modals on overlay click
+['profModal','serviceModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.remove('open');
+      editingProfId = null; editingSvcId = null;
+    }
+  });
+});
+
+// INIT
+renderProfs();
+renderServices();
+</script>
+
+</body>
+</html>
