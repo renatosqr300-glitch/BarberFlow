@@ -1,0 +1,357 @@
+import React, { useState, useEffect } from 'react';
+import { Settings, Plus, Trash2, User, Scissors, Clock, Check, X, Calendar } from 'lucide-react';
+
+const App = () => {
+  // --- ESTADO INICIAL / PERSISTÊNCIA ---
+  const [barbeiros, setBarbeiros] = useState(() => {
+    const saved = localStorage.getItem('bf_barbeiros');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, nome: 'Barbeiro 1', cor: '#c9973a', iniciais: 'B1' }
+    ];
+  });
+
+  const [servicos, setServicos] = useState(() => {
+    const saved = localStorage.getItem('bf_servicos');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, nome: 'Corte Tradicional', preco: '30,00' }
+    ];
+  });
+
+  const [agendamentos, setAgendamentos] = useState(() => {
+    const saved = localStorage.getItem('bf_agendas');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // --- CONTROLE DE UI ---
+  const [view, setView] = useState('agenda'); // 'agenda' ou 'config'
+  const [modalOpen, setModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ cliente: '', barbeiroId: '', hora: '08:00', servicoId: '' });
+
+  // --- SALVAR AUTOMATICAMENTE ---
+  useEffect(() => {
+    localStorage.setItem('bf_barbeiros', JSON.stringify(barbeiros));
+    localStorage.setItem('bf_servicos', JSON.stringify(servicos));
+    localStorage.setItem('bf_agendas', JSON.stringify(agendamentos));
+  }, [barbeiros, servicos, agendamentos]);
+
+  // --- FUNÇÕES DE CONFIGURAÇÃO ---
+  const addBarbeiro = () => {
+    if (barbeiros.length >= 5) return;
+    const novo = {
+      id: Date.now(),
+      nome: `Novo Barbeiro`,
+      cor: ['#c9973a', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'][barbeiros.length],
+      iniciais: 'NB'
+    };
+    setBarbeiros([...barbeiros, novo]);
+  };
+
+  const removeBarbeiro = (id) => {
+    if (barbeiros.length <= 1) return;
+    setBarbeiros(barbeiros.filter(b => b.id !== id));
+    setAgendamentos(agendamentos.filter(a => a.barbeiroId !== id));
+  };
+
+  const updateBarbeiro = (id, campo, valor) => {
+    setBarbeiros(barbeiros.map(b => {
+      if (b.id === id) {
+        const atualizado = { ...b, [campo]: valor };
+        if (campo === 'nome') atualizado.iniciais = valor.substring(0, 2).toUpperCase();
+        return atualizado;
+      }
+      return b;
+    }));
+  };
+
+  const addServico = () => {
+    setServicos([...servicos, { id: Date.now(), nome: 'Novo Serviço', preco: '0,00' }]);
+  };
+
+  const removeServico = (id) => {
+    setServicos(servicos.filter(s => s.id !== id));
+  };
+
+  const updateServico = (id, campo, valor) => {
+    setServicos(servicos.map(s => s.id === id ? { ...s, [campo]: valor } : s));
+  };
+
+  // --- FUNÇÕES DE AGENDA ---
+  const handleAgendar = () => {
+    if (!formData.cliente || !formData.barbeiroId) return;
+    setAgendamentos([...agendamentos, { ...formData, id: Date.now() }]);
+    setModalOpen(false);
+    setFormData({ cliente: '', barbeiroId: '', hora: '08:00', servicoId: '' });
+  };
+
+  const horas = Array.from({ length: 13 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+
+  return (
+    <div className="flex flex-col h-screen bg-[#0c0c0c] text-[#f0ece4] font-sans overflow-hidden">
+      
+      {/* HEADER DINÂMICO */}
+      <header className="h-16 bg-[#141414] border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-50">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold tracking-widest uppercase italic">
+            BARBER<span className="text-[#c9973a]">FLOW</span>
+          </h1>
+          <div className="h-4 w-[1px] bg-white/10 mx-2"></div>
+          <button 
+            onClick={() => setView('agenda')}
+            className={`text-[10px] uppercase font-bold tracking-widest ${view === 'agenda' ? 'text-[#c9973a]' : 'text-white/40'}`}
+          >
+            Agenda
+          </button>
+          <button 
+            onClick={() => setView('config')}
+            className={`text-[10px] uppercase font-bold tracking-widest ${view === 'config' ? 'text-[#c9973a]' : 'text-white/40'}`}
+          >
+            Configurações
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {view === 'agenda' && (
+            <button 
+              onClick={() => setModalOpen(true)}
+              className="bg-[#c9973a] text-black text-[10px] font-bold px-5 py-2.5 rounded-full uppercase tracking-widest hover:scale-105 transition-all"
+            >
+              ＋ Agendar
+            </button>
+          )}
+          <button onClick={() => setView(view === 'agenda' ? 'config' : 'agenda')} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+            <Settings size={18} className={view === 'config' ? 'text-[#c9973a]' : 'text-white/40'} />
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-hidden relative">
+        
+        {/* VIEW: AGENDA (VISUAL ORIGINAL MELHORADO) */}
+        {view === 'agenda' && (
+          <div className="flex h-full overflow-auto bg-[#0c0c0c]">
+            {/* Timeline */}
+            <div className="w-16 shrink-0 bg-[#141414] border-r border-white/5 sticky left-0 z-30">
+                <div className="h-14 border-b border-white/5"></div>
+                {horas.map(h => (
+                  <div key={h} className="h-24 border-b border-white/5 flex justify-center pt-4 text-[9px] font-bold text-white/20 uppercase tracking-tighter">
+                    {h}
+                  </div>
+                ))}
+            </div>
+
+            {/* Colunas Barbeiros */}
+            <div className="flex min-w-max">
+              {barbeiros.map(b => (
+                <div key={b.id} className="w-64 border-r border-white/5 flex flex-col group">
+                  <div className="h-14 bg-[#141414] border-b border-white/10 flex items-center px-4 sticky top-0 z-20 group-hover:bg-[#1a1a1a] transition-colors">
+                    <div 
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-black mr-3 shadow-lg"
+                      style={{ backgroundColor: b.cor + '22', color: b.cor, border: `1px solid ${b.cor}44` }}
+                    >
+                      {b.iniciais}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest truncate">{b.nome}</span>
+                  </div>
+
+                  <div className="relative h-[1248px] bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[length:100%_96px]">
+                    {agendamentos.filter(a => a.barbeiroId == b.id).map(appt => {
+                      const s = servicos.find(sv => sv.id == appt.servicoId);
+                      const hourIndex = horas.indexOf(appt.hora);
+                      return (
+                        <div 
+                          key={appt.id}
+                          className="absolute inset-x-2 rounded-xl border-l-4 p-3 z-10 bg-[#141414] shadow-2xl border border-white/5"
+                          style={{ 
+                            top: `${hourIndex * 96 + 8}px`, 
+                            height: '80px',
+                            borderLeftColor: b.cor
+                          }}
+                        >
+                          <div className="text-[11px] font-bold truncate mb-0.5">{appt.cliente}</div>
+                          <div className="text-[9px] text-white/40 uppercase font-medium">{s?.nome || 'Serviço'}</div>
+                          <div className="mt-2 flex items-center justify-between">
+                             <span className="text-[9px] font-bold text-[#c9973a]">R$ {s?.preco || '0,00'}</span>
+                             <div className="flex gap-1">
+                               <div className="w-1 h-1 rounded-full bg-[#c9973a]"></div>
+                               <div className="w-1 h-1 rounded-full bg-[#c9973a] opacity-50"></div>
+                             </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: CONFIGURAÇÕES (PERSONALIZAÇÃO TOTAL) */}
+        {view === 'config' && (
+          <div className="h-full overflow-y-auto p-8 max-w-4xl mx-auto space-y-12 pb-24">
+            
+            {/* Seção Barbeiros */}
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold uppercase tracking-widest flex items-center gap-2">
+                    <User className="text-[#c9973a]" size={20} /> Equipe
+                  </h2>
+                  <p className="text-xs text-white/40 mt-1 uppercase tracking-tighter">Gerencie seus profissionais (Mín 1, Máx 5)</p>
+                </div>
+                <button 
+                  onClick={addBarbeiro}
+                  disabled={barbeiros.length >= 5}
+                  className="bg-white/5 hover:bg-white/10 text-white/80 p-2 rounded-lg disabled:opacity-20"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+
+              <div className="grid gap-4">
+                {barbeiros.map(b => (
+                  <div key={b.id} className="bg-[#141414] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm" style={{ backgroundColor: b.cor + '22', color: b.cor }}>
+                      {b.iniciais}
+                    </div>
+                    <div className="flex-1 grid grid-cols-2 gap-4">
+                      <input 
+                        value={b.nome}
+                        onChange={(e) => updateBarbeiro(b.id, 'nome', e.target.value)}
+                        className="bg-[#0c0c0c] border border-white/5 rounded-xl px-4 py-2 text-sm outline-none focus:border-[#c9973a]"
+                        placeholder="Nome do Barbeiro"
+                      />
+                      <input 
+                        type="color"
+                        value={b.cor}
+                        onChange={(e) => updateBarbeiro(b.id, 'cor', e.target.value)}
+                        className="w-full h-10 bg-transparent cursor-pointer rounded-lg border-none"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => removeBarbeiro(b.id)}
+                      className="p-3 text-red-500/40 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Seção Serviços */}
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold uppercase tracking-widest flex items-center gap-2">
+                    <Scissors className="text-[#c9973a]" size={20} /> Serviços & Preços
+                  </h2>
+                  <p className="text-xs text-white/40 mt-1 uppercase tracking-tighter">Defina os valores cobrados na barbearia</p>
+                </div>
+                <button onClick={addServico} className="bg-white/5 hover:bg-white/10 text-white/80 p-2 rounded-lg">
+                  <Plus size={20} />
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                {servicos.map(s => (
+                  <div key={s.id} className="bg-[#141414] border border-white/5 p-4 rounded-2xl flex items-center gap-4">
+                    <input 
+                      value={s.nome}
+                      onChange={(e) => updateServico(s.id, 'nome', e.target.value)}
+                      className="flex-1 bg-[#0c0c0c] border border-white/5 rounded-xl px-4 py-2 text-sm outline-none focus:border-[#c9973a]"
+                      placeholder="Ex: Corte Degradê"
+                    />
+                    <div className="relative w-32">
+                      <span className="absolute left-3 top-2 text-[10px] text-white/20 font-bold">R$</span>
+                      <input 
+                        value={s.preco}
+                        onChange={(e) => updateServico(s.id, 'preco', e.target.value)}
+                        className="w-full bg-[#0c0c0c] border border-white/5 rounded-xl pl-8 pr-4 py-2 text-sm outline-none focus:border-[#c9973a]"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <button onClick={() => removeServico(s.id)} className="p-3 text-red-500/40 hover:text-red-500">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
+
+      {/* MODAL DE NOVO AGENDAMENTO */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl">
+          <div className="bg-[#141414] w-full max-w-sm rounded-[32px] border border-white/10 p-8 shadow-2xl relative">
+            <button onClick={() => setModalOpen(false)} className="absolute top-6 right-6 text-white/20 hover:text-white"><X size={20}/></button>
+            <h2 className="font-bold text-xl tracking-widest text-[#c9973a] mb-8 flex items-center gap-2 uppercase italic">
+              <Calendar size={20}/> Agendar
+            </h2>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="text-[9px] uppercase font-bold text-white/30 block mb-2 ml-1 tracking-widest">Nome do Cliente</label>
+                <input 
+                  autoFocus
+                  className="w-full bg-[#0c0c0c] border border-white/5 rounded-2xl p-4 text-sm outline-none focus:border-[#c9973a] transition-all"
+                  placeholder="Nome completo"
+                  value={formData.cliente}
+                  onChange={(e) => setFormData({...formData, cliente: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase font-bold text-white/30 block mb-2 ml-1 tracking-widest">Barbeiro Responsável</label>
+                <select 
+                  className="w-full bg-[#0c0c0c] border border-white/5 rounded-2xl p-4 text-sm outline-none appearance-none cursor-pointer"
+                  value={formData.barbeiroId}
+                  onChange={(e) => setFormData({...formData, barbeiroId: e.target.value})}
+                >
+                  <option value="">Selecionar profissional...</option>
+                  {barbeiros.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+                </select>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-[9px] uppercase font-bold text-white/30 block mb-2 ml-1 tracking-widest">Horário</label>
+                  <select 
+                    className="w-full bg-[#0c0c0c] border border-white/5 rounded-2xl p-4 text-sm outline-none appearance-none cursor-pointer"
+                    value={formData.hora}
+                    onChange={(e) => setFormData({...formData, hora: e.target.value})}
+                  >
+                    {horas.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex-[1.5]">
+                  <label className="text-[9px] uppercase font-bold text-white/30 block mb-2 ml-1 tracking-widest">Serviço</label>
+                  <select 
+                    className="w-full bg-[#0c0c0c] border border-white/5 rounded-2xl p-4 text-sm outline-none appearance-none cursor-pointer"
+                    value={formData.servicoId}
+                    onChange={(e) => setFormData({...formData, servicoId: e.target.value})}
+                  >
+                    <option value="">Serviço...</option>
+                    {servicos.map(s => <option key={s.id} value={s.id}>{s.nome} - R${s.preco}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleAgendar}
+                className="w-full bg-[#c9973a] text-black font-bold py-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-[#c9973a]/20 mt-4 active:scale-95 transition-all"
+              >
+                Confirmar Agendamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
+
