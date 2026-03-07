@@ -1,0 +1,226 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { 
+  Calendar, Users, Scissors, Plus, ChevronLeft, ChevronRight, 
+  Trash2, Phone, CreditCard, AlertCircle, RefreshCw
+} from 'lucide-react';
+
+// --- CONFIGURAÇÃO SUPABASE ---
+const SB_URL = 'https://pvsmbsoqhkcpdeztosrg.supabase.co';
+const SB_KEY = 'sb_publishable_4EmgtmprG6lfXNG0U7v6dQ_RaVkjr5n';
+const supabase = createClient(SB_URL, SB_KEY);
+
+const App = () => {
+  const [view, setView] = useState('agenda');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState(null);
+  
+  const [barbeiros, setBarbeiros] = useState([]);
+  const [servicos, setServicos] = useState([]);
+  const [agenda, setAgenda] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const [form, setForm] = useState({
+    cliente: '', whatsapp: '', barbeiro_nome: '', 
+    servico_nome: '', hora: '09:00', tipo: 'appt'
+  });
+
+  // Função para carregar tudo com tratamento de erro rigoroso
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      setDbError(null);
+
+      // Busca Barbeiros
+      const { data: bData, error: bErr } = await supabase.from('barbeiros').select('*');
+      if (bErr) throw bErr;
+      setBarbeiros(bData || []);
+
+      // Busca Serviços
+      const { data: sData, error: sErr } = await supabase.from('servicos').select('*');
+      if (sErr) throw sErr;
+      setServicos(sData || []);
+
+      // Busca Agenda
+      await fetchAgenda();
+
+    } catch (err) {
+      console.error("Erro na conexão:", err);
+      setDbError(err.message || "Erro ao acessar tabelas no Supabase");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAgenda = async () => {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const { data, error } = await supabase.from('agenda').select('*').eq('data', dateStr);
+    if (!error) setAgenda(data || []);
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, [currentDate]);
+
+  const handleSave = async () => {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const payload = { ...form, data: dateStr };
+    
+    try {
+      const { error } = await supabase.from('agenda').insert([payload]);
+      if (error) throw error;
+      setModalOpen(false);
+      setForm({ cliente: '', whatsapp: '', barbeiro_nome: '', servico_nome: '', hora: '09:00', tipo: 'appt' });
+      fetchAgenda();
+    } catch (e) {
+      alert("Erro ao salvar: Verifique se a tabela 'agenda' tem todas as colunas (cliente, whatsapp, barbeiro_nome, servico_nome, data, hora).");
+    }
+  };
+
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let i = 8; i <= 20; i++) {
+      slots.push(`${i.toString().padStart(2, '0')}:00`, `${i.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  }, []);
+
+  // Tela de Carregamento
+  if (loading) return (
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-[#c9973a]">
+      <RefreshCw className="animate-spin mb-4" size={32} />
+      <div className="text-xl font-black italic">BARBERFLOW</div>
+      <div className="text-[10px] uppercase tracking-widest opacity-50">Sincronizando Banco de Dados...</div>
+    </div>
+  );
+
+  // Tela de Erro (Evita a Tela Branca)
+  if (dbError) return (
+    <div className="min-h-screen bg-[#0a0a0a] p-8 flex flex-col items-center justify-center text-center">
+      <AlertCircle size={48} className="text-red-500 mb-4" />
+      <h1 className="text-[#c9973a] font-black text-xl mb-2">ERRO NO SUPABASE</h1>
+      <p className="text-gray-500 text-sm max-w-xs mb-6">
+        {dbError.includes("not found") 
+          ? "As tabelas não foram encontradas. Você precisa rodar o comando SQL no painel do Supabase." 
+          : "Não foi possível carregar os dados. Verifique sua conexão ou as configurações do banco."}
+      </p>
+      <div className="bg-[#141414] p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left mb-6 text-red-400">
+        Código do erro: {dbError}
+      </div>
+      <button onClick={loadAllData} className="bg-[#c9973a] text-black px-6 py-3 rounded-xl font-black flex items-center gap-2">
+        <RefreshCw size={18} /> TENTAR NOVAMENTE
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-[#f0ece4] pb-24 font-sans">
+      <header className="p-4 bg-[#141414] border-b border-white/5 flex justify-between items-center sticky top-0 z-50">
+        <div className="font-black text-xl tracking-tighter italic">BARBER<span className="text-[#c9973a]">FLOW</span></div>
+        <button onClick={() => setModalOpen(true)} className="bg-[#c9973a] text-black px-4 py-2 rounded-lg font-black text-xs flex items-center gap-2">
+          <Plus size={18} /> NOVO
+        </button>
+      </header>
+
+      <nav className="flex bg-[#141414] border-b border-white/5 sticky top-[61px] z-40">
+        {[
+          { id: 'agenda', icon: Calendar, label: 'Agenda' },
+          { id: 'equipe', icon: Users, label: 'Equipe' },
+          { id: 'servicos', icon: Scissors, label: 'Serviços' },
+          { id: 'plano', icon: CreditCard, label: 'Dashboard' }
+        ].map(item => (
+          <button key={item.id} onClick={() => setView(item.id)} className={`flex-1 py-4 flex flex-col items-center gap-1 ${view === item.id ? 'text-[#c9973a] border-b-2 border-[#c9973a]' : 'text-gray-600'}`}>
+            <item.icon size={18} />
+            <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <main className="p-4">
+        {view === 'agenda' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-[#141414] p-3 rounded-xl border border-white/5">
+              <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() - 1); setCurrentDate(d); }}><ChevronLeft className="text-[#c9973a]"/></button>
+              <div className="text-center font-bold">
+                <div className="text-[10px] text-[#c9973a] uppercase">{currentDate.toLocaleDateString('pt-BR', { weekday: 'long' })}</div>
+                <div>{currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>
+              </div>
+              <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d); }}><ChevronRight className="text-[#c9973a]"/></button>
+            </div>
+
+            <div className="grid gap-2">
+              {agenda.length === 0 ? (
+                <div className="text-center py-20 text-gray-600 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-white/5 rounded-3xl">Agenda Vazia</div>
+              ) : (
+                agenda.map(item => (
+                  <div key={item.id} className="bg-[#141414] p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                    <div>
+                      <div className="text-[10px] font-black text-[#c9973a]">{item.hora} • {item.barbeiro_nome}</div>
+                      <div className="font-bold">{item.cliente}</div>
+                      <div className="text-[10px] text-gray-500 uppercase">{item.servico_nome}</div>
+                    </div>
+                    {item.whatsapp && (
+                      <button onClick={() => window.open(`https://wa.me/55${item.whatsapp.replace(/\D/g,'')}`)} className="p-3 bg-green-500/10 text-green-500 rounded-full"><Phone size={18}/></button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {view === 'equipe' && (
+          <div className="space-y-4">
+            <h2 className="text-[#c9973a] font-black text-xs uppercase tracking-widest">Barbeiros Ativos</h2>
+            <div className="grid gap-2">
+              {barbeiros.map(b => (
+                <div key={b.id} className="bg-[#141414] p-4 rounded-xl border border-white/5 flex justify-between items-center">
+                  <span className="font-bold">{b.nome}</span>
+                  <button onClick={async () => { await supabase.from('barbeiros').delete().eq('id', b.id); loadAllData(); }} className="text-red-900"><Trash2 size={18}/></button>
+                </div>
+              ))}
+            </div>
+            <div className="bg-[#141414] p-2 rounded-xl border border-white/5 flex gap-2">
+              <input id="in-b" placeholder="Novo Barbeiro" className="bg-transparent flex-1 p-2 outline-none text-sm font-bold" />
+              <button onClick={async () => { const v = document.getElementById('in-b').value; if(v){ await supabase.from('barbeiros').insert([{nome: v}]); loadAllData(); } }} className="bg-[#c9973a] text-black px-4 py-2 rounded-lg font-black text-xs">ADICIONAR</button>
+            </div>
+          </div>
+        )}
+
+        {view === 'servicos' && (
+           <div className="space-y-4 text-center py-10">
+             <Scissors size={48} className="mx-auto text-gray-700 mb-4" />
+             <p className="text-gray-500 text-sm">Gerencie seus serviços aqui.</p>
+           </div>
+        )}
+      </main>
+
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#141414] w-full max-w-md rounded-[2rem] border border-white/10 p-6 space-y-4">
+            <h3 className="text-[#c9973a] font-black italic">NOVO HORÁRIO</h3>
+            <input placeholder="Nome do Cliente" className="w-full bg-white/5 p-4 rounded-xl outline-none font-bold" value={form.cliente} onChange={e=>setForm({...form, cliente: e.target.value})} />
+            <input placeholder="WhatsApp (DDD + Número)" className="w-full bg-white/5 p-4 rounded-xl outline-none font-bold" value={form.whatsapp} onChange={e=>setForm({...form, whatsapp: e.target.value})} />
+            
+            <div className="grid grid-cols-2 gap-2">
+              <select className="bg-white/5 p-4 rounded-xl outline-none font-bold text-xs" value={form.barbeiro_nome} onChange={e=>setForm({...form, barbeiro_nome: e.target.value})}>
+                <option value="">Barbeiro</option>
+                {barbeiros.map(b => <option key={b.id} value={b.nome} className="bg-[#141414]">{b.nome}</option>)}
+              </select>
+              <select className="bg-white/5 p-4 rounded-xl outline-none font-bold text-xs" value={form.hora} onChange={e=>setForm({...form, hora: e.target.value})}>
+                {timeSlots.map(t => <option key={t} value={t} className="bg-[#141414]">{t}</option>)}
+              </select>
+            </div>
+
+            <button onClick={handleSave} className="w-full bg-[#c9973a] text-black py-4 rounded-2xl font-black italic shadow-xl">AGENDAR AGORA</button>
+            <button onClick={()=>setModalOpen(false)} className="w-full text-gray-600 text-[10px] font-black">CANCELAR</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
+
