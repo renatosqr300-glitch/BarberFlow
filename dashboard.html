@@ -1,0 +1,83 @@
+import { useEffect, useState } from 'react';
+import { supabase } from './lib/supabase'; // Certifique-se que o caminho do seu arquivo de cliente está correto
+
+export default function Dashboard() {
+  const [agendamentos, setAgendamentos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
+
+  useEffect(() => {
+    async function carregarDados() {
+      try {
+        setLoading(true);
+        setErro(null);
+
+        // Busca os dados na tabela que acabamos de resetar
+        const { data, error } = await supabase
+          .from('agendamentos')
+          .select('*')
+          .order('data_hora', { ascending: true });
+
+        if (error) throw error;
+
+        setAgendamentos(data || []);
+      } catch (e) {
+        console.error("Erro na conexão:", e.message);
+        setErro(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarDados();
+  }, []);
+
+  // 1. Tela de Carregamento
+  if (loading) {
+    return (
+      <div style={{ background: '#000', color: '#fff', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
+        <p>Conectando ao Barber Flow...</p>
+      </div>
+    );
+  }
+
+  // 2. Tela de Erro (Caso as chaves da Vercel ou o SQL falhem)
+  if (erro) {
+    return (
+      <div style={{ background: '#000', color: '#ff4d4d', height: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
+        <h2>Ops! Algo deu errado:</h2>
+        <p>{erro}</p>
+        <button onClick={() => window.location.reload()} style={{ padding: '10px', marginTop: '10px' }}>Tentar Novamente</button>
+      </div>
+    );
+  }
+
+  // 3. Dashboard Principal
+  return (
+    <div style={{ background: '#111', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
+      <header style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '24px', color: '#gold' }}>Barber Flow</h1>
+        <p style={{ fontSize: '14px', color: '#888' }}>Gestão de Agendamentos</p>
+      </header>
+
+      {agendamentos.length === 0 ? (
+        <p>Nenhum agendamento encontrado no banco.</p>
+      ) : (
+        <div style={{ display: 'grid', gap: '15px' }}>
+          {agendamentos.map((item) => (
+            <div key={item.id} style={{ background: '#222', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #gold' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                <strong style={{ fontSize: '18px' }}>{item.cliente_nome}</strong>
+                <span style={{ color: '#4caf50' }}>R$ {parseFloat(item.valor).toFixed(2)}</span>
+              </div>
+              <p style={{ margin: '5px 0', color: '#ccc' }}>{item.servico}</p>
+              <small style={{ color: '#888' }}>
+                {new Date(item.data_hora).toLocaleString('pt-BR')}
+              </small>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
