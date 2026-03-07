@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow — Painel Administrativo</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #0a0a0a;
+            --card-bg: #141414;
+            --input-bg: #1f1f1f;
+            --gold: #c9973a;
+            --gold-hover: #e8b04a;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --border: rgba(255, 255, 255, 0.1);
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            height: 70px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+        }
+
+        .logo span { color: var(--gold); }
+
+        .date-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--input-bg);
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .date-control button {
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        #currentDate {
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        /* Layout Principal */
+        .wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        nav {
+            width: 240px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-link.active, .nav-link:hover {
+            background: var(--input-bg);
+            color: var(--gold);
+        }
+
+        .btn-logout {
+            margin-top: auto;
+            color: var(--danger);
+        }
+
+        /* Agenda Area */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .stats-bar {
+            padding: 15px 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 12px;
+            flex: 1;
+        }
+
+        .stat-card small { color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; }
+        .stat-card h3 { color: var(--gold); font-size: 1.4rem; margin-top: 5px; }
+
+        .agenda-grid {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: var(--dark-bg);
+            display: flex;
+        }
+
+        .time-col {
+            width: 60px;
+            flex-shrink: 0;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+        }
+
+        .time-slot {
+            height: 80px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 10px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .barbers-cols {
+            display: flex;
+            flex: 1;
+        }
+
+        .barber-column {
+            flex: 1;
+            min-width: 200px;
+            border-right: 1px solid var(--border);
+            position: relative;
+        }
+
+        .barber-header {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+            z-index: 5;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: var(--gold);
+        }
+
+        .appointment {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            background: rgba(201, 151, 58, 0.15);
+            border-left: 4px solid var(--gold);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            z-index: 2;
+            transition: 0.2s;
+        }
+
+        .appointment:hover {
+            background: rgba(201, 151, 58, 0.25);
+            transform: scale(0.98);
+        }
+
+        .appointment strong { display: block; font-size: 0.85rem; margin-bottom: 2px; }
+        .appointment span { display: block; font-size: 0.7rem; color: var(--text-muted); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .modal h2 { font-family: 'Bebas Neue', cursive; color: var(--gold); margin-bottom: 20px; font-size: 1.8rem; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            padding: 15px;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            nav { display: none; }
+            .stats-bar { flex-wrap: wrap; }
+            .stat-card { min-width: 45%; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">BARBER<span>FLOW</span></div>
+    <div class="date-control">
+        <button onclick="changeDay(-1)">‹</button>
+        <span id="currentDate">--</span>
+        <button onclick="changeDay(1)">›</button>
+    </div>
+    <button onclick="openModal()" style="background:var(--gold); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ Novo</button>
+</header>
+
+<div class="wrapper">
+    <nav>
+        <div class="nav-link active">📅 Agenda</div>
+        <div class="nav-link" onclick="alert('Configurações em breve')">⚙️ Configurações</div>
+        <div class="nav-link btn-logout" onclick="window.location.href='barberflow-login.html'">🚪 Sair</div>
+    </nav>
+
+    <main>
+        <div class="stats-bar">
+            <div class="stat-card">
+                <small>Agendamentos</small>
+                <h3 id="statCount">0</h3>
+            </div>
+            <div class="stat-card">
+                <small>Receita do Dia</small>
+                <h3 id="statRevenue">R$ 0,00</h3>
+            </div>
+        </div>
+
+        <div class="agenda-grid">
+            <div class="time-col" id="timeSlots"></div>
+            <div class="barbers-cols" id="barberCols"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalAgendar">
+    <div class="modal">
+        <h2>Novo Agendamento</h2>
+        <div class="form-group">
+            <label>NOME DO CLIENTE</label>
+            <input type="text" id="clientName" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+            <label>BARBEIRO</label>
+            <select id="selectBarber"></select>
+        </div>
+        <div class="form-group">
+            <label>SERVIÇO</label>
+            <select id="selectService">
+                <option value="35">Corte Social - R$ 35</option>
+                <option value="45">Degradê - R$ 45</option>
+                <option value="25">Barba - R$ 25</option>
+                <option value="60">Combo (Corte + Barba) - R$ 60</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>HORÁRIO</label>
+            <select id="selectTime"></select>
+        </div>
+        <button class="btn-confirm" onclick="saveAppointment()">Agendar Agora</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; color:var(--text-muted); margin-top:15px; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
+<script>
+    // Configurações Iniciais
+    let barbers = [
+        { id: 1, name: "Carlos" },
+        { id: 2, name: "Renato" },
+        { id: 3, name: "Marcos" }
+    ];
+
+    let appointments = JSON.parse(localStorage.getItem('bf_appointments')) || [];
+    let currentDate = new Date();
+
+    function init() {
+        renderGrid();
+        updateDateDisplay();
+        populateSelectors();
+    }
+
+    function updateDateDisplay() {
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('pt-BR', options);
+    }
+
+    function renderGrid() {
+        const timeContainer = document.getElementById('timeSlots');
+        const barberContainer = document.getElementById('barberCols');
+        
+        timeContainer.innerHTML = '';
+        barberContainer.innerHTML = '';
+
+        // Gerar Horários (08:00 às 20:00)
+        for(let h=8; h<=20; h++) {
+            timeContainer.innerHTML += `<div class="time-slot">${h}:00</div>`;
+        }
+
+        // Gerar Colunas
+        const dateStr = currentDate.toISOString().split('T')[0];
+        let totalRev = 0;
+        let count = 0;
+
+        barbers.forEach(barber => {
+            const col = document.createElement('div');
+            col.className = 'barber-column';
+            col.innerHTML = `<div class="barber-header">${barber.name}</div>`;
+            
+            // Filtrar agendamentos deste barbeiro nesta data
+            const dayApps = appointments.filter(a => a.barberId == barber.id && a.date === dateStr);
+            
+            dayApps.forEach(app => {
+                const top = (app.hour - 8) * 80 + 60; // 60px do header
+                const card = document.createElement('div');
+                card.className = 'appointment';
+                card.style.top = top + "px";
+                card.style.height = "70px";
+                card.innerHTML = `<strong>${app.client}</strong><span>${app.serviceName}</span>`;
+                card.onclick = () => deleteApp(app.id);
+                col.appendChild(card);
+                
+                totalRev += parseFloat(app.price);
+                count++;
+            });
+
+            barberContainer.appendChild(col);
+        });
+
+        document.getElementById('statCount').textContent = count;
+        document.getElementById('statRevenue').textContent = `R$ ${totalRev.toFixed(2)}`;
+    }
+
+    function populateSelectors() {
+        const bSel = document.getElementById('selectBarber');
+        bSel.innerHTML = barbers.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+        const tSel = document.getElementById('selectTime');
+        let times = '';
+        for(let h=8; h<=20; h++) times += `<option value="${h}">${h}:00</option>`;
+        tSel.innerHTML = times;
+    }
+
+    function saveAppointment() {
+        const name = document.getElementById('clientName').value;
+        if(!name) return alert("Digite o nome do cliente");
+
+        const svc = document.getElementById('selectService');
+        
+        const newApp = {
+            id: Date.now(),
+            client: name,
+            barberId: document.getElementById('selectBarber').value,
+            price: svc.value,
+            serviceName: svc.options[svc.selectedIndex].text.split(' - ')[0],
+            hour: document.getElementById('selectTime').value,
+            date: currentDate.toISOString().split('T')[0]
+        };
+
+        appointments.push(newApp);
+        localStorage.setItem('bf_appointments', JSON.stringify(appointments));
+        closeModal();
+        renderGrid();
+        document.getElementById('clientName').value = '';
+    }
+
+    function deleteApp(id) {
+        if(confirm("Deseja cancelar este agendamento?")) {
+            appointments = appointments.filter(a => a.id !== id);
+            localStorage.setItem('bf_appointments', JSON.stringify(appointments));
+            renderGrid();
+        }
+    }
+
+    function changeDay(diff) {
+        currentDate.setDate(currentDate.getDate() + diff);
+        updateDateDisplay();
+        renderGrid();
+    }
+
+    function openModal() { document.getElementById('modalAgendar').classList.add('active'); }
+    function closeModal() { document.getElementById('modalAgendar').classList.remove('active'); }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
