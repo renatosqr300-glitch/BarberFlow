@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow Premium</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f0ece4; margin: 0; padding: 0; }
+        .gold-gradient { background: linear-gradient(135deg, #c9973a 0%, #a67c2e 100%); }
+        .card-dark { background: #141414; border: 1px solid rgba(255,255,255,0.05); }
+        .slot-active { background: rgba(201, 151, 58, 0.15); border-left: 4px solid #c9973a; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        input, select { background: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { createClient } = supabase;
+
+        const SB_URL = 'https://pvsmbsoqhkcpdeztosrg.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2c21ic29xaGtjcGRlenRvc3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTEyOTUsImV4cCI6MjA4ODQyNzI5NX0.UufvlSa0Eyk7JPFrMVe3TmsuYTpWppi3PA6I2uhcqa4';
+        const client = createClient(SB_URL, SB_KEY);
+
+        const Icon = ({ name, size = 18 }) => {
+            const LucideIcon = lucide.icons[name];
+            return LucideIcon ? <LucideIcon size={size} /> : null;
+        };
+
+        function App() {
+            const [view, setView] = useState('agenda');
+            const [loading, setLoading] = useState(true);
+            const [barbeiros, setBarbeiros] = useState([]);
+            const [agenda, setAgenda] = useState([]);
+            const [currentDate, setCurrentDate] = useState(new Date());
+
+            useEffect(() => {
+                fetchInitialData();
+            }, []);
+
+            async function fetchInitialData() {
+                try {
+                    setLoading(true);
+                    const { data: b } = await client.from('barbeiros').select('*').order('nome');
+                    setBarbeiros(b || []);
+                    
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const { data: a } = await client.from('agenda').select('*').eq('data', dateStr);
+                    setAgenda(a || []);
+                } catch (e) {
+                    console.error("Erro ao carregar:", e);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            const timeSlots = useMemo(() => {
+                const slots = [];
+                for (let i = 8; i <= 21; i++) {
+                    slots.push(`${i.toString().padStart(2, '0')}:00`);
+                    slots.push(`${i.toString().padStart(2, '0')}:30`);
+                }
+                return slots;
+            }, []);
+
+            if (loading) return (
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-[#c9973a] font-black animate-pulse">SINCRONIZANDO NUVEM...</div>
+                </div>
+            );
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-[#0a0a0a] flex flex-col shadow-2xl">
+                    <header className="p-6 flex justify-between items-center border-b border-white/5">
+                        <div className="font-black italic text-xl">BARBER<span className="text-[#c9973a]">FLOW</span></div>
+                        <button className="gold-gradient text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase">Novo +</button>
+                    </header>
+
+                    <nav className="flex bg-[#141414] border-b border-white/5">
+                        <button onClick={() => setView('agenda')} className={`flex-1 py-4 flex flex-col items-center gap-1 ${view === 'agenda' ? 'text-[#c9973a] border-b-2 border-[#c9973a]' : 'text-zinc-600'}`}>
+                            <Icon name="Calendar" />
+                            <span className="text-[9px] font-bold">AGENDA</span>
+                        </button>
+                        <button onClick={() => setView('equipe')} className={`flex-1 py-4 flex flex-col items-center gap-1 ${view === 'equipe' ? 'text-[#c9973a] border-b-2 border-[#c9973a]' : 'text-zinc-600'}`}>
+                            <Icon name="Users" />
+                            <span className="text-[9px] font-bold">EQUIPE</span>
+                        </button>
+                    </nav>
+
+                    <main className="p-4 flex-1">
+                        {view === 'agenda' ? (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between bg-[#141414] p-3 rounded-2xl border border-white/5">
+                                    <button className="text-[#c9973a]"><Icon name="ChevronLeft" /></button>
+                                    <div className="text-center font-bold text-sm">
+                                        {currentDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                                    </div>
+                                    <button className="text-[#c9973a]"><Icon name="ChevronRight" /></button>
+                                </div>
+
+                                <div className="flex bg-[#141414] rounded-3xl border border-white/5 overflow-hidden min-h-[400px]">
+                                    <div className="w-14 bg-black/20 border-r border-white/5">
+                                        {timeSlots.slice(0, 10).map(t => (
+                                            <div key={t} className="h-16 flex items-center justify-center text-[10px] font-bold text-zinc-600 border-b border-white/5">{t}</div>
+                                        ))}
+                                    </div>
+                                    <div className="flex-1 flex overflow-x-auto no-scrollbar">
+                                        {barbeiros.map(b => (
+                                            <div key={b.id} className="min-w-[140px] border-r border-white/5">
+                                                <div className="h-10 flex items-center justify-center text-[10px] font-black text-[#c9973a] border-b border-[#c9973a]/20 uppercase">{b.nome}</div>
+                                                <div className="p-2">
+                                                    <div className="h-12 border border-dashed border-white/5 rounded-lg flex items-center justify-center text-[8px] text-zinc-700">Livre</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-[#c9973a]">Equipe Ativa</h3>
+                                {barbeiros.map(b => (
+                                    <div key={b.id} className="card-dark p-4 rounded-2xl flex justify-between items-center">
+                                        <span className="font-bold">{b.nome}</span>
+                                        <Icon name="CheckCircle2" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
