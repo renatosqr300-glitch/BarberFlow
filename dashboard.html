@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarberFlow V5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
+        .gold { color: #c9973a; }
+        .bg-gold { background-color: #c9973a; }
+        .card { background: #111; border: 1px solid #222; border-radius: 20px; }
+        .btn-active:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="pb-20">
+
+    <!-- Alerta de Erro Visual -->
+    <div id="status" class="hidden fixed top-0 left-0 w-full p-4 text-[10px] font-black uppercase text-center z-[100]"></div>
+
+    <header class="p-6 flex justify-between items-center border-b border-white/5">
+        <h1 class="text-xl font-black italic uppercase">BARBER<span class="gold">FLOW</span></h1>
+        <div id="sync-indicator" class="w-2 h-2 rounded-full bg-red-500"></div>
+    </header>
+
+    <nav class="flex border-b border-white/5 bg-[#050505] sticky top-0 z-50">
+        <button onclick="setView('agenda')" class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest">Agenda</button>
+        <button onclick="setView('equipe')" class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest gold">Equipa</button>
+        <button onclick="setView('servicos')" class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest">Serviços</button>
+    </nav>
+
+    <main id="app" class="p-4 space-y-6">
+        <!-- O conteúdo será injetado aqui -->
+    </main>
+
+    <script>
+        // CONFIGURAÇÃO ABSOLUTA
+        const URL = "https://tnyqonofxojonofhsnph.supabase.co/rest/v1";
+        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRueXFvbm9meG9qb25vZmhzbnBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzODIzODAsImV4cCI6MjA1Njk1ODM4MH0.W7vGz-kSshvD_M-78E8-G-6-8-E-6-8-E-6-8-E-6-8-E-6-8";
+
+        let barbeiros = [];
+        let atualView = 'equipe';
+
+        function mostrarErro(msg, cor = 'bg-red-600') {
+            const el = document.getElementById('status');
+            el.innerText = msg;
+            el.className = `fixed top-0 left-0 w-full p-4 text-[10px] font-black uppercase text-center z-[100] ${cor}`;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4000);
+        }
+
+        async function carregar() {
+            try {
+                const res = await fetch(`${URL}/barbeiros?select=*&order=nome`, {
+                    headers: { "apikey": KEY, "Authorization": `Bearer ${KEY}` }
+                });
+                if (res.ok) {
+                    barbeiros = await res.json();
+                    document.getElementById('sync-indicator').classList.replace('bg-red-500', 'bg-green-500');
+                    render();
+                } else { throw new Error(); }
+            } catch (e) {
+                mostrarErro("ERRO DE LIGAÇÃO: O Supabase está a rejeitar o site!");
+            }
+        }
+
+        async function addBarbeiro() {
+            const nome = document.getElementById('nome-input').value;
+            if (!nome) return;
+
+            const btn = document.getElementById('btn-add');
+            btn.innerText = "A GRAVAR...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${URL}/barbeiros`, {
+                    method: 'POST',
+                    headers: {
+                        "apikey": KEY,
+                        "Authorization": `Bearer ${KEY}`,
+                        "Content-Type": "application/json",
+                        "Prefer": "return=representation"
+                    },
+                    body: JSON.stringify({ nome: nome })
+                });
+
+                if (res.ok) {
+                    document.getElementById('nome-input').value = '';
+                    mostrarErro("SUCESSO: BARBEIRO NA NUVEM!", "bg-green-600");
+                    carregar();
+                } else {
+                    const errorData = await res.json();
+                    mostrarErro("ERRO NO BANCO: " + (errorData.message || "Tente novamente"));
+                }
+            } catch (e) {
+                mostrarErro("ERRO FATAL: Falha de rede ou CORS!");
+            } finally {
+                btn.innerText = "ADICIONAR AGORA";
+                btn.disabled = false;
+            }
+        }
+
+        function setView(v) { atualView = v; render(); }
+
+        function render() {
+            const app = document.getElementById('app');
+            if (atualView === 'equipe') {
+                app.innerHTML = `
+                    <h2 class="text-xl font-black uppercase italic tracking-tighter gold">Gestão de Equipa</h2>
+                    <div class="card p-6 space-y-4">
+                        <input id="nome-input" type="text" placeholder="NOME DO BARBEIRO" class="w-full bg-[#1a1a1a] border border-white/10 p-4 rounded-xl outline-none focus:border-[#c9973a] font-bold uppercase text-xs">
+                        <button id="btn-add" onclick="addBarbeiro()" class="w-full bg-gold text-black py-4 rounded-xl font-black uppercase text-xs btn-active shadow-lg">Adicionar Agora</button>
+                    </div>
+                    <div class="space-y-2">
+                        ${barbeiros.map(b => `
+                            <div class="card p-4 flex justify-between items-center animate-in fade-in">
+                                <span class="font-black uppercase text-sm tracking-tight">${b.nome}</span>
+                                <div class="w-2 h-2 rounded-full bg-green-500/20"></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                app.innerHTML = `<div class="py-20 text-center opacity-20 font-black uppercase text-xs">Módulo ${atualView} em espera...</div>`;
+            }
+        }
+
+        // Inicia
+        carregar();
+    </script>
+</body>
+</html>
+
