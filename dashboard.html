@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow - Dashboard Profissional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; -webkit-tap-highlight-color: transparent; }
+        .gold-gradient { background: linear-gradient(135deg, #c9973a 0%, #a67c2e 100%); }
+        .gold-text { color: #c9973a; }
+        .gold-border { border-color: rgba(201, 151, 58, 0.3); }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="no-scrollbar">
+    <div id="app" class="min-h-screen pb-24">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/5 p-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black tracking-tighter italic uppercase">BARBER<span class="gold-text">FLOW</span></h1>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">Gestão Local</p>
+            </div>
+            <button onclick="openModal()" class="gold-gradient text-black w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main id="main-content" class="p-4 max-w-lg mx-auto">
+            <!-- O conteúdo da agenda será injetado aqui pelo JavaScript -->
+        </main>
+
+        <!-- Navegação Inferior -->
+        <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#111] border-t border-white/5 flex justify-around p-2 pb-6">
+            <button onclick="changeTab('agenda')" class="tab-btn flex flex-col items-center gap-1 p-2 gold-text" id="tab-agenda">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span class="text-[10px] font-bold uppercase">Agenda</span>
+            </button>
+            <button onclick="changeTab('equipe')" class="tab-btn flex flex-col items-center gap-1 p-2 text-gray-500" id="tab-equipe">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span class="text-[10px] font-bold uppercase">Equipe</span>
+            </button>
+        </nav>
+
+        <!-- Modal Agendamento -->
+        <div id="modal" class="fixed inset-0 z-[60] hidden flex items-end sm:items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
+            <div class="bg-[#111] w-full max-w-md rounded-[2.5rem] border border-white/10 p-8 relative z-10 shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-black italic uppercase">Novo <span class="gold-text">Agendamento</span></h2>
+                    <button onclick="closeModal()" class="text-gray-500">&times;</button>
+                </div>
+                <div class="space-y-4">
+                    <input type="text" id="form-cliente" placeholder="Nome do Cliente" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:gold-border">
+                    <input type="tel" id="form-whatsapp" placeholder="WhatsApp" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:gold-border">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="form-hora" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none text-white"></select>
+                        <select id="form-servico" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none text-white">
+                            <option value="Corte Social">Corte Social</option>
+                            <option value="Barba Premium">Barba Premium</option>
+                        </select>
+                    </div>
+                    <button onclick="saveAgendamento()" class="w-full gold-gradient text-black py-5 rounded-2xl font-black uppercase tracking-widest mt-4">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'agenda';
+        let currentDate = new Date();
+        let agenda = JSON.parse(localStorage.getItem('barberflow_agenda')) || [];
+
+        function init() {
+            render();
+            populateHours();
+        }
+
+        function populateHours() {
+            const select = document.getElementById('form-hora');
+            for (let i = 8; i <= 20; i++) {
+                const h1 = `${i.toString().padStart(2, '0')}:00`;
+                const h2 = `${i.toString().padStart(2, '0')}:30`;
+                select.innerHTML += `<option value="${h1}">${h1}</option><option value="${h2}">${h2}</option>`;
+            }
+        }
+
+        function changeTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.replace('gold-text', 'text-gray-500'));
+            document.getElementById(`tab-${tab}`).classList.replace('text-gray-500', 'gold-text');
+            render();
+        }
+
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            render();
+        }
+
+        function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        function saveAgendamento() {
+            const cliente = document.getElementById('form-cliente').value;
+            const whatsapp = document.getElementById('form-whatsapp').value;
+            if (!cliente || !whatsapp) return alert('Preencha os dados!');
+
+            const novo = {
+                id: Date.now(),
+                data: currentDate.toISOString().split('T')[0],
+                cliente,
+                whatsapp,
+                hora: document.getElementById('form-hora').value,
+                servico: document.getElementById('form-servico').value
+            };
+
+            agenda.push(novo);
+            localStorage.setItem('barberflow_agenda', JSON.stringify(agenda));
+            closeModal();
+            render();
+        }
+
+        function deleteAgendamento(id) {
+            agenda = agenda.filter(a => a.id !== id);
+            localStorage.setItem('barberflow_agenda', JSON.stringify(agenda));
+            render();
+        }
+
+        function render() {
+            const main = document.getElementById('main-content');
+            if (currentTab === 'agenda') {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const dayName = currentDate.toLocaleDateString('pt-PT', { weekday: 'long' });
+                const dayNum = currentDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' });
+
+                let html = `
+                    <div class="flex items-center justify-between mb-8 glass p-4 rounded-3xl">
+                        <button onclick="changeDate(-1)" class="p-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                        <div class="text-center uppercase font-black">
+                            <p class="gold-text text-[10px] tracking-widest">${dayName}</p>
+                            <p class="text-lg">${dayNum}</p>
+                        </div>
+                        <button onclick="changeDate(1)" class="p-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                    </div>
+                    <div class="space-y-3">
+                `;
+
+                for (let i = 8; i <= 20; i++) {
+                    [":00", ":30"].forEach(m => {
+                        const time = `${i.toString().padStart(2, '0')}${m}`;
+                        const appt = agenda.find(a => a.data === dateStr && a.hora === time);
+                        html += `
+                            <div class="p-4 rounded-2xl border ${appt ? 'bg-[#c9973a]/10 gold-border' : 'bg-white/5 border-white/5'} flex justify-between items-center">
+                                <div class="flex items-center gap-4">
+                                    <span class="font-mono text-sm ${appt ? 'gold-text' : 'text-gray-600'}">${time}</span>
+                                    <div>
+                                        <p class="font-bold ${appt ? 'text-white' : 'text-white/10 italic'}">${appt ? appt.cliente : 'Livre'}</p>
+                                        ${appt ? `<p class="text-[10px] gold-text uppercase font-black">${appt.servico}</p>` : ''}
+                                    </div>
+                                </div>
+                                ${appt ? `<button onclick="deleteAgendamento(${appt.id})" class="text-red-900">&times;</button>` : ''}
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div>`;
+                main.innerHTML = html;
+            } else {
+                main.innerHTML = `
+                    <div class="space-y-4">
+                        <h2 class="gold-text text-[10px] font-black uppercase tracking-widest">Equipa Ativa</h2>
+                        <div class="glass p-5 rounded-3xl flex items-center gap-4">
+                            <div class="w-12 h-12 gold-gradient rounded-2xl flex items-center justify-center text-black font-black">R</div>
+                            <div><p class="font-bold">Renato</p><p class="text-[10px] text-gray-500 uppercase">Mestre Barbeiro</p></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
