@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow — Agendar</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark: #0c0c0c; --dark2: #141414; --gold: #c9973a; --text: #f0ece4; --muted: #777; --green: #10b981;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--dark); font-family: 'DM Sans', sans-serif; color: var(--text); padding-bottom: 100px; }
+        
+        .hero { background: linear-gradient(160deg, #1a1408 0%, var(--dark2) 60%); padding: 32px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .shop-avatar { width: 70px; height: 70px; background: var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px; box-shadow: 0 8px 25px rgba(201,151,58,0.2); }
+        .shop-name { font-family: 'Bebas Neue', cursive; font-size: 1.8rem; letter-spacing: 2px; }
+
+        .content { max-width: 500px; margin: 0 auto; padding: 20px; }
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .section-title { font-family: 'Bebas Neue', cursive; font-size: 1.4rem; color: var(--gold); margin-bottom: 15px; }
+        
+        /* Estilo dos Cards */
+        .card { background: var(--dark2); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 15px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: 0.2s; }
+        .card.selected { border-color: var(--gold); background: rgba(201,151,58,0.1); }
+        .avatar-circle { width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: black; }
+
+        /* Grades de Horário */
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .time-chip { background: var(--dark2); border: 1px solid rgba(255,255,255,0.05); padding: 12px 5px; border-radius: 10px; text-align: center; font-size: 0.8rem; font-weight: bold; }
+        .time-chip.selected { background: var(--gold); color: black; }
+
+        /* Inputs */
+        input { width: 100%; background: var(--dark2); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; color: white; margin-bottom: 15px; }
+
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; background: rgba(12,12,12,0.9); backdrop-blur: 10px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; }
+        .btn { width: 100%; max-width: 400px; background: var(--gold); color: black; border: none; padding: 16px; border-radius: 15px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        .btn:disabled { opacity: 0.2; }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="shop-avatar">✂️</div>
+    <div class="shop-name">BarberFlow Premium</div>
+</div>
+
+<div class="content">
+    <!-- TELA 1: BARBEIRO -->
+    <div class="screen active" id="step1">
+        <h2 class="section-title">Escolha o Profissional</h2>
+        <div id="listProfs">Carregando barbeiros...</div>
+    </div>
+
+    <!-- TELA 2: SERVIÇO -->
+    <div class="screen" id="step2">
+        <h2 class="section-title">Escolha o Serviço</h2>
+        <div id="listServices">Carregando serviços...</div>
+    </div>
+
+    <!-- TELA 3: DATA/HORA -->
+    <div class="screen" id="step3">
+        <h2 class="section-title">Escolha o Horário</h2>
+        <input type="date" id="inputDate" onchange="updateDate()">
+        <div class="time-grid" id="listTimes"></div>
+    </div>
+
+    <!-- TELA 4: DADOS -->
+    <div class="screen" id="step4">
+        <h2 class="section-title">Seus Dados</h2>
+        <input type="text" id="userName" placeholder="Seu Nome Completo">
+        <input type="tel" id="userPhone" placeholder="Seu WhatsApp (com DDD)">
+    </div>
+
+    <!-- SUCESSO -->
+    <div class="screen text-center" id="stepSuccess">
+        <div style="background: var(--green); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 20px auto; font-size: 1.5rem;">✓</div>
+        <h2 class="section-title" style="color: var(--green)">Agendado!</h2>
+        <p id="msgSuccess" style="font-size: 0.9rem; color: var(--muted)"></p>
+        <button class="btn" style="margin-top: 30px" onclick="window.location.reload()">Novo Agendamento</button>
+    </div>
+</div>
+
+<div class="bottom-bar" id="footer">
+    <button class="btn" id="btnNext" disabled onclick="next()">Continuar</button>
+</div>
+
+<script>
+    const SB_URL = 'https://pvsmbsoqhkcpdeztosrg.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2c21ic29xaGtjcGRlenRvc3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTEyOTUsImV4cCI6MjA4ODQyNzI5NX0.UufvlSa0Eyk7JPFrMVe3TmsuYTpWppi3PA6I2uhcqa4';
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+    let currentStep = 1;
+    let selection = { prof: null, service: null, date: '', time: '' };
+
+    async function init() {
+        // Carrega Barbeiros Reais do Supabase
+        const { data: profs } = await supabaseClient.from('barbeiros').select('*');
+        const listP = document.getElementById('listProfs');
+        listP.innerHTML = profs?.map(p => `
+            <div class="card" onclick="selectProf('${p.nome}')">
+                <div class="avatar-circle">${p.nome[0]}</div>
+                <div style="font-weight:bold">${p.nome}</div>
+            </div>
+        `).join('') || 'Nenhum barbeiro disponível.';
+
+        // Carrega Serviços Reais do Supabase
+        const { data: servs } = await supabaseClient.from('servicos').select('*');
+        const listS = document.getElementById('listServices');
+        listS.innerHTML = servs?.map(s => `
+            <div class="card" onclick="selectServ('${s.nome}')">
+                <div style="flex:1; font-weight:bold">${s.nome}</div>
+                <div style="color:var(--gold)">R$ ${s.preco}</div>
+            </div>
+        `).join('') || 'Nenhum serviço disponível.';
+
+        renderTimes();
+    }
+
+    function selectProf(nome) {
+        selection.prof = nome;
+        highlightCards('listProfs', nome);
+        document.getElementById('btnNext').disabled = false;
+    }
+
+    function selectServ(nome) {
+        selection.service = nome;
+        highlightCards('listServices', nome);
+        document.getElementById('btnNext').disabled = false;
+    }
+
+    function highlightCards(id, val) {
+        const cards = document.querySelectorAll(`#${id} .card`);
+        cards.forEach(c => c.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+    }
+
+    function renderTimes() {
+        const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        const grid = document.getElementById('listTimes');
+        grid.innerHTML = times.map(t => `<div class="time-chip" onclick="selectTime('${t}')">${t}</div>`).join('');
+    }
+
+    function selectTime(t) {
+        selection.time = t;
+        const chips = document.querySelectorAll('.time-chip');
+        chips.forEach(c => c.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+        document.getElementById('btnNext').disabled = false;
+    }
+
+    function updateDate() {
+        selection.date = document.getElementById('inputDate').value;
+    }
+
+    function next() {
+        if (currentStep < 4) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            currentStep++;
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById('btnNext').disabled = true;
+            if(currentStep === 4) document.getElementById('btnNext').innerText = 'Finalizar Agendamento';
+        } else {
+            save();
+        }
+    }
+
+    async function save() {
+        const name = document.getElementById('userName').value;
+        const phone = document.getElementById('userPhone').value;
+        if(!name || !phone) return alert("Preencha seu nome e telefone");
+
+        const btn = document.getElementById('btnNext');
+        btn.disabled = true;
+        btn.innerText = "Gravando...";
+
+        const payload = {
+            cliente: name,
+            whatsapp: phone,
+            barbeiro_nome: selection.prof,
+            servico_nome: selection.service,
+            data: selection.date,
+            hora: selection.time,
+            tipo: 'appt'
+        };
+
+        const { error } = await supabaseClient.from('agenda').insert([payload]);
+
+        if (error) {
+            alert("Erro ao agendar: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "Finalizar Agendamento";
+        } else {
+            document.getElementById('step4').classList.remove('active');
+            document.getElementById('footer').style.display = 'none';
+            document.getElementById('stepSuccess').classList.add('active');
+            document.getElementById('msgSuccess').innerText = `Tudo certo, ${name}! Seu horário com ${selection.prof} foi reservado para ${selection.time}.`;
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
+
