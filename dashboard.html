@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarberFlow PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; -webkit-tap-highlight-color: transparent; }
+        .gold-gradient { background: linear-gradient(135deg, #c9973a 0%, #a67c2e 100%); }
+        .gold-text { color: #c9973a; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .tab-active { color: #c9973a; border-bottom: 2px solid #c9973a; }
+        .btn-active:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="pb-20">
+
+    <!-- Notificação de Erro -->
+    <div id="error-banner" class="hidden fixed top-0 left-0 w-full bg-red-600 text-white p-3 text-[10px] font-black uppercase text-center z-[100] animate-pulse">
+        Erro na Nuvem! Verifica a conexão.
+    </div>
+
+    <!-- Header -->
+    <header class="p-5 flex justify-between items-center bg-[#0a0a0a]/90 border-b border-white/5 sticky top-0 z-50 backdrop-blur-lg">
+        <div class="font-black italic text-xl tracking-tighter uppercase">BARBER<span class="gold-text">FLOW</span></div>
+        <button onclick="openModal()" class="gold-gradient text-black p-2 rounded-xl shadow-lg btn-active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    </header>
+
+    <!-- Menu -->
+    <nav class="flex bg-[#111] border-b border-white/5 sticky top-[69px] z-40">
+        <button onclick="switchView('agenda')" id="tab-agenda" class="flex-1 py-4 text-[9px] font-black uppercase tracking-widest tab-active">Agenda</button>
+        <button onclick="switchView('equipe')" id="tab-equipe" class="flex-1 py-4 text-[9px] font-black uppercase tracking-widest text-gray-500">Equipa</button>
+        <button onclick="switchView('servicos')" id="tab-servicos" class="flex-1 py-4 text-[9px] font-black uppercase tracking-widest text-gray-500">Serviços</button>
+    </nav>
+
+    <!-- Conteúdo -->
+    <main class="p-4" id="main-content">
+        <!-- O conteúdo será injetado aqui pelo JavaScript -->
+        <div id="loader" class="py-20 text-center opacity-50 font-black uppercase text-[10px] tracking-[0.5em]">Sincronizando...</div>
+    </main>
+
+    <!-- Modal Agendamento -->
+    <div id="modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95" onclick="closeModal()"></div>
+        <div class="bg-[#141414] w-full max-w-md rounded-t-[2.5rem] p-8 border border-white/10 relative animate-in slide-in-from-bottom duration-300">
+            <h3 class="text-xl font-black gold-text uppercase italic mb-6">Agendar Horário</h3>
+            <div class="space-y-4">
+                <input id="form-cliente" placeholder="Nome do Cliente" class="w-full bg-white/5 p-4 rounded-2xl outline-none border border-white/10 text-white">
+                <select id="form-barbeiro" class="w-full bg-white/5 p-4 rounded-2xl outline-none border border-white/10 text-white"></select>
+                <select id="form-servico" class="w-full bg-white/5 p-4 rounded-2xl outline-none border border-white/10 text-white"></select>
+                <select id="form-hora" class="w-full bg-white/5 p-4 rounded-2xl outline-none border border-white/10 text-white">
+                    <option value="09:00">09:00</option>
+                    <option value="09:30">09:30</option>
+                    <option value="10:00">10:00</option>
+                    <option value="10:30">10:30</option>
+                    <option value="11:00">11:00</option>
+                    <!-- Mais horas aqui -->
+                </select>
+                <button onclick="confirmarAgendamento()" class="w-full gold-gradient text-black py-5 rounded-2xl font-black uppercase text-xs shadow-xl btn-active">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÕES SUPABASE
+        const SB_URL = "https://tnyqonofxojonofhsnph.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRueXFvbm9meG9qb25vZmhzbnBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzODIzODAsImV4cCI6MjA1Njk1ODM4MH0.W7vGz-kSshvD_M-78E8-G-6-8-E-6-8-E-6-8-E-6-8-E-6-8";
+
+        let currentView = 'agenda';
+        let barbeiros = [];
+        let servicos = [];
+        let agenda = [];
+
+        // --- FUNÇÃO DE COMUNICAÇÃO NATIVA (SEM ERRO DE "LOAD FAILED") ---
+        async function supabase(method, table, body = null, query = '') {
+            const options = {
+                method,
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                }
+            };
+            if (body) options.body = JSON.stringify(body);
+            
+            try {
+                const res = await fetch(`${SB_URL}/rest/v1/${table}${query}`, options);
+                if (!res.ok) throw new Error("Erro na nuvem");
+                return await res.json();
+            } catch (err) {
+                document.getElementById('error-banner').classList.remove('hidden');
+                console.error(err);
+                return null;
+            }
+        }
+
+        async function init() {
+            barbeiros = await supabase('GET', 'barbeiros', null, '?select=*&order=nome') || [];
+            servicos = await supabase('GET', 'servicos', null, '?select=*&order=nome') || [];
+            agenda = await supabase('GET', 'agenda', null, '?select=*') || [];
+            render();
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('tab-active', 'text-gray-500'));
+            document.getElementById(`tab-${view}`).classList.add('tab-active');
+            render();
+        }
+
+        function render() {
+            const main = document.getElementById('main-content');
+            
+            if (currentView === 'equipe') {
+                main.innerHTML = `
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-black uppercase tracking-tighter">Equipa</h2>
+                        <div class="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-4 shadow-2xl">
+                            <input id="new-barbeiro" placeholder="Nome do Barbeiro" class="w-full bg-[#1a1a1a] p-4 rounded-2xl outline-none border border-white/10 focus:border-[#c9973a] transition-all">
+                            <button onclick="addBarbeiro()" class="w-full gold-gradient text-black py-4 rounded-2xl font-black uppercase text-[10px] btn-active shadow-lg shadow-[#c9973a]/20">Adicionar Barbeiro</button>
+                        </div>
+                        <div class="space-y-2">
+                            ${barbeiros.map(b => `
+                                <div class="bg-[#161616] p-4 rounded-2xl flex justify-between items-center border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-[#c9973a] rounded-xl flex items-center justify-center text-black font-black uppercase">${b.nome[0]}</div>
+                                        <span class="font-bold uppercase text-sm">${b.nome}</span>
+                                    </div>
+                                    <button onclick="deleteItem('barbeiros', ${b.id})" class="text-red-500 opacity-40">Apagar</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (currentView === 'servicos') {
+                main.innerHTML = `
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-black uppercase tracking-tighter">Serviços</h2>
+                        <div class="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-3">
+                            <input id="new-servico-nome" placeholder="Nome do Serviço" class="w-full bg-[#1a1a1a] p-4 rounded-2xl outline-none border border-white/10">
+                            <input id="new-servico-preco" type="number" placeholder="Preço" class="w-full bg-[#1a1a1a] p-4 rounded-2xl outline-none border border-white/10">
+                            <button onclick="addServico()" class="w-full gold-gradient text-black py-4 rounded-2xl font-black uppercase text-[10px] btn-active">Gravar Serviço</button>
+                        </div>
+                        <div class="space-y-2">
+                            ${servicos.map(s => `
+                                <div class="bg-[#161616] p-4 rounded-2xl flex justify-between items-center border border-white/5">
+                                    <div>
+                                        <div class="font-bold uppercase text-sm">${s.nome}</div>
+                                        <div class="gold-text font-black text-xs">${s.preco}€</div>
+                                    </div>
+                                    <button onclick="deleteItem('servicos', ${s.id})" class="text-red-500 opacity-40">Apagar</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                main.innerHTML = `
+                    <div class="text-center py-10 opacity-30 font-black text-xs uppercase tracking-[0.5em]">
+                        Agenda Ativa<br>Total de Registos: ${agenda.length}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        ${barbeiros.map(b => `
+                            <div class="bg-[#111] p-4 rounded-3xl border border-white/5">
+                                <div class="text-[10px] font-black gold-text uppercase mb-4 text-center border-b border-white/5 pb-2">${b.nome}</div>
+                                <div class="space-y-2">
+                                    ${agenda.filter(a => a.barbeiro_nome === b.nome).map(a => `
+                                        <div class="bg-white/5 p-2 rounded-xl text-[9px] border-l-2 border-[#c9973a]">
+                                            <div class="font-black uppercase">${a.cliente}</div>
+                                            <div class="opacity-50">${a.hora} - ${a.servico_nome}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        // --- AÇÕES ---
+        async function addBarbeiro() {
+            const nome = document.getElementById('new-barbeiro').value;
+            if(!nome) return;
+            const res = await supabase('POST', 'barbeiros', { nome });
+            if(res) {
+                document.getElementById('new-barbeiro').value = '';
+                init();
+            }
+        }
+
+        async function addServico() {
+            const nome = document.getElementById('new-servico-nome').value;
+            const preco = document.getElementById('new-servico-preco').value;
+            if(!nome || !preco) return;
+            const res = await supabase('POST', 'servicos', { nome, preco: parseFloat(preco) });
+            if(res) {
+                init();
+            }
+        }
+
+        async function deleteItem(table, id) {
+            if(confirm("Deseja apagar?")) {
+                await supabase('DELETE', table, null, `?id=eq.${id}`);
+                init();
+            }
+        }
+
+        function openModal() {
+            const bSel = document.getElementById('form-barbeiro');
+            const sSel = document.getElementById('form-servico');
+            bSel.innerHTML = barbeiros.map(b => `<option value="${b.nome}">${b.nome}</option>`).join('');
+            sSel.innerHTML = servicos.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        async function confirmarAgendamento() {
+            const cliente = document.getElementById('form-cliente').value;
+            const b = document.getElementById('form-barbeiro').value;
+            const s = document.getElementById('form-servico').value;
+            const h = document.getElementById('form-hora').value;
+            
+            if(!cliente) return;
+            
+            const res = await supabase('POST', 'agenda', {
+                cliente, 
+                barbeiro_nome: b, 
+                servico_nome: s, 
+                hora: h, 
+                data: new Date().toISOString().split('T')[0],
+                tipo: 'appt'
+            });
+            
+            if(res) {
+                closeModal();
+                init();
+            }
+        }
+
+        // Inicializar
+        init();
+    </script>
+</body>
+</html>
+
