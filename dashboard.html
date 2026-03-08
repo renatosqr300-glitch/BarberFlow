@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarberFlow PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; }
+        .gold-bg { background-color: #c9973a; }
+        .gold-text { color: #c9973a; }
+        .tab-active { color: #c9973a; border-bottom: 2px solid #c9973a; }
+        .card-dark { background-color: #121212; border: 1px solid rgba(255,255,255,0.05); }
+        .btn-press:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- Notificação de Status -->
+    <div id="status-msg" class="hidden fixed top-0 left-0 w-full p-3 text-[10px] font-black uppercase text-center z-[100]"></div>
+
+    <!-- Header -->
+    <header class="p-6 flex justify-between items-center bg-[#0a0a0a] border-b border-white/5 sticky top-0 z-50">
+        <div class="text-2xl font-black italic tracking-tighter uppercase">BARBER<span class="gold-text">FLOW</span></div>
+        <button onclick="changeTab('equipe')" class="gold-bg text-black p-2 rounded-xl shadow-lg btn-press">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    </header>
+
+    <!-- Menu Principal -->
+    <nav class="flex bg-[#0a0a0a] border-b border-white/5 sticky top-[81px] z-40">
+        <button onclick="changeTab('agenda')" id="btn-agenda" class="flex-1 py-4 text-[10px] font-black uppercase tab-active">Agenda</button>
+        <button onclick="changeTab('equipe')" id="btn-equipe" class="flex-1 py-4 text-[10px] font-black uppercase text-gray-500">Equipa</button>
+        <button onclick="changeTab('servicos')" id="btn-servicos" class="flex-1 py-4 text-[10px] font-black uppercase text-gray-500">Serviços</button>
+    </nav>
+
+    <main class="p-4" id="main-view"></main>
+
+    <script>
+        const SB_URL = "https://tnyqonofxojonofhsnph.supabase.co/rest/v1";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRueXFvbm9meG9qb25vZmhzbnBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzODIzODAsImV4cCI6MjA1Njk1ODM4MH0.W7vGz-kSshvD_M-78E8-G-6-8-E-6-8-E-6-8-E-6-8-E-6-8";
+
+        let currentTab = 'agenda';
+        let store = { barbeiros: [], servicos: [], agenda: [] };
+
+        function notify(msg, type = 'success') {
+            const el = document.getElementById('status-msg');
+            el.innerText = msg;
+            el.className = `fixed top-0 left-0 w-full p-3 text-[10px] font-black uppercase text-center z-[100] ${type === 'success' ? 'bg-green-600' : 'bg-red-600 text-white'}`;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        async function request(method, table, body = null, query = '') {
+            try {
+                const res = await fetch(`${SB_URL}/${table}${query}`, {
+                    method,
+                    headers: {
+                        'apikey': SB_KEY,
+                        'Authorization': `Bearer ${SB_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: body ? JSON.stringify(body) : null
+                });
+                if (!res.ok) throw new Error();
+                return await res.json();
+            } catch (e) {
+                notify("Falha na Nuvem! Executou o SQL no Supabase?", "error");
+                return null;
+            }
+        }
+
+        async function loadData() {
+            const [b, s, a] = await Promise.all([
+                request('GET', 'barbeiros', null, '?select=*&order=nome'),
+                request('GET', 'servicos', null, '?select=*&order=nome'),
+                request('GET', 'agenda', null, '?select=*')
+            ]);
+            store = { barbeiros: b || [], servicos: s || [], agenda: a || [] };
+            render();
+        }
+
+        function changeTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('nav button').forEach(b => {
+                b.classList.remove('tab-active');
+                b.classList.add('text-gray-500');
+            });
+            document.getElementById(`btn-${tab}`).classList.add('tab-active');
+            render();
+        }
+
+        async function saveBarbeiro() {
+            const nome = document.getElementById('new-b-nome').value;
+            if(!nome) return;
+            const res = await request('POST', 'barbeiros', { nome });
+            if(res) { notify("Barbeiro Adicionado!"); loadData(); }
+        }
+
+        async function saveServico() {
+            const nome = document.getElementById('new-s-nome').value;
+            const preco = document.getElementById('new-s-preco').value;
+            if(!nome || !preco) return;
+            const res = await request('POST', 'servicos', { nome, preco: parseFloat(preco) });
+            if(res) { notify("Serviço Salvo!"); loadData(); }
+        }
+
+        function render() {
+            const view = document.getElementById('main-view');
+            if(currentTab === 'equipe') {
+                view.innerHTML = `
+                    <div class="space-y-6 animate-in slide-in-from-bottom duration-300">
+                        <h2 class="text-xl font-black uppercase italic">Equipa</h2>
+                        <div class="card-dark p-6 rounded-[2rem] space-y-4 shadow-xl">
+                            <input id="new-b-nome" placeholder="Nome do Barbeiro" class="w-full bg-white/5 p-4 rounded-xl outline-none border border-white/5">
+                            <button onclick="saveBarbeiro()" class="w-full gold-bg text-black py-4 rounded-xl font-black uppercase text-[10px] btn-press">Confirmar Cadastro</button>
+                        </div>
+                        <div class="space-y-2">
+                            ${store.barbeiros.map(b => `
+                                <div class="card-dark p-4 rounded-xl flex justify-between items-center">
+                                    <span class="font-bold uppercase text-sm">${b.nome}</span>
+                                    <button class="text-red-500/30 text-[10px] font-black uppercase">Apagar</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if(currentTab === 'servicos') {
+                view.innerHTML = `
+                    <div class="space-y-6 animate-in slide-in-from-bottom duration-300">
+                        <h2 class="text-xl font-black uppercase italic">Serviços</h2>
+                        <div class="card-dark p-6 rounded-[2rem] space-y-3 shadow-xl">
+                            <input id="new-s-nome" placeholder="Nome do Serviço" class="w-full bg-white/5 p-4 rounded-xl outline-none border border-white/5">
+                            <input id="new-s-preco" type="number" placeholder="Preço" class="w-full bg-white/5 p-4 rounded-xl outline-none border border-white/5">
+                            <button onclick="saveServico()" class="w-full gold-bg text-black py-4 rounded-xl font-black uppercase text-[10px] btn-press">Salvar Serviço</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                view.innerHTML = `
+                    <div class="py-10 text-center">
+                        <div class="text-[10px] font-black gold-text uppercase tracking-[0.3em] mb-2">Agenda Online</div>
+                        <div class="text-2xl font-black italic uppercase">8 de Março</div>
+                    </div>
+                    <div class="space-y-4">
+                        ${store.barbeiros.length === 0 ? '<div class="opacity-20 text-center py-10 uppercase font-black text-xs">Vazio</div>' : ''}
+                        ${store.barbeiros.map(b => `
+                            <div class="card-dark p-4 rounded-2xl">
+                                <div class="gold-text text-[9px] font-black uppercase mb-3 text-center border-b border-white/5 pb-2">${b.nome}</div>
+                                <div class="text-center opacity-30 text-[8px] uppercase font-black py-4">Sem Agendamentos</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
+
