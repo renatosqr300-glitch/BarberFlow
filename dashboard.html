@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow PRO - Cloud</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: white; margin: 0; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .gold-gradient { background: linear-gradient(135deg, #c9973a 0%, #a67c2e 100%); }
+        .gold-text { color: #c9973a; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        select option { background: #141414; color: white; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const SUPABASE_URL = 'https://pvsmbsoqhkcpdeztosrg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2c21ic29xaGtjcGRlenRvc3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTEyOTUsImV4cCI6MjA4ODQyNzI5NX0.UufvlSa0Eyk7JPFrMVe3TmsuYTpWppi3PA6I2uhcqa4';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Helper para formatar data sem erro de fuso horário UTC
+        const formatDate = (date) => {
+            const z = n => n < 10 ? '0' + n : n;
+            return `${date.getFullYear()}-${z(date.getMonth() + 1)}-${z(date.getDate())}`;
+        };
+
+        const Icon = ({ name, size = 20 }) => {
+            const icons = {
+                plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+                trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+                chevronLeft: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
+                chevronRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+                lock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            };
+            return icons[name] || null;
+        };
+
+        const App = () => {
+            const [view, setView] = useState('agenda');
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [loading, setLoading] = useState(true);
+            const [barbeiros, setBarbeiros] = useState([]);
+            const [servicos, setServicos] = useState([]);
+            const [agenda, setAgenda] = useState([]);
+            
+            // Controle de Estados dos Inputs
+            const [modalOpen, setModalOpen] = useState(false);
+            const [editingItem, setEditingItem] = useState(null);
+            const [form, setForm] = useState({ cliente: '', barbeiro_nome: '', servico_nome: '', hora: '08:00', tipo: 'appt' });
+            const [newBName, setNewBName] = useState('');
+            const [newSName, setNewSName] = useState('');
+            const [newSPrice, setNewSPrice] = useState('');
+
+            const timeSlots = useMemo(() => {
+                const slots = [];
+                for (let i = 8; i <= 22; i++) {
+                    slots.push(`${i.toString().padStart(2, '0')}:00`);
+                    if (i < 22) slots.push(`${i.toString().padStart(2, '0')}:30`);
+                }
+                return slots;
+            }, []);
+
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    const { data: b } = await supabaseClient.from('barbeiros').select('*').order('nome');
+                    const { data: s } = await supabaseClient.from('servicos').select('*').order('nome');
+                    const { data: a } = await supabaseClient.from('agenda').select('*');
+                    if (b) setBarbeiros(b);
+                    if (s) setServicos(s);
+                    if (a) setAgenda(a);
+                } catch (err) {
+                    console.error("Erro na sincronização.", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => { fetchData(); }, []);
+
+            const handleSave = async () => {
+                const dateStr = formatDate(currentDate);
+                const payload = {
+                    cliente: form.tipo === 'block' ? 'INDISPONÍVEL' : form.cliente,
+                    barbeiro_nome: form.barbeiro_nome || (barbeiros[0]?.nome),
+                    servico_nome: form.tipo === 'block' ? 'BLOQUEADO' : (form.servico_nome || 'Geral'),
+                    hora: form.hora,
+                    data: dateStr,
+                    tipo: form.tipo
+                };
+
+                if (!payload.barbeiro_nome) return alert("Adicione um barbeiro primeiro!");
+
+                if (editingItem) {
+                    await supabaseClient.from('agenda').update(payload).eq('id', editingItem.id);
+                } else {
+                    await supabaseClient.from('agenda').insert([payload]);
+                }
+                fetchData();
+                setModalOpen(false);
+            };
+
+            const handleDelete = async (id) => {
+                if(confirm("Deseja apagar este registro?")) {
+                    await supabaseClient.from('agenda').delete().eq('id', id);
+                    fetchData();
+                    setModalOpen(false);
+                }
+            };
+
+            const addBarbeiro = async () => {
+                if (!newBName) return;
+                await supabaseClient.from('barbeiros').insert([{ nome: newBName }]);
+                setNewBName('');
+                fetchData();
+            };
+
+            const addServico = async () => {
+                if (!newSName || !newSPrice) return;
+                await supabaseClient.from('servicos').insert([{ nome: newSName, preco: parseFloat(newSPrice) }]);
+                setNewSName('');
+                setNewSPrice('');
+                fetchData();
+            };
+
+            if (loading) return (
+                <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center">
+                    <div className="w-12 h-12 border-4 border-[#c9973a] border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <h1 className="text-xl font-black italic gold-text animate-pulse uppercase">Sincronizando...</h1>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <header className="p-5 bg-[#141414]/95 backdrop-blur-md sticky top-0 z-40 border-b border-white/5 flex justify-between items-center shadow-2xl">
+                        <div className="font-black text-xl italic tracking-tighter uppercase">BARBER<span className="gold-text">FLOW</span></div>
+                        <button onClick={() => { 
+                            setEditingItem(null); 
+                            setForm({ cliente: '', barbeiro_nome: barbeiros[0]?.nome, servico_nome: servicos[0]?.nome, hora: '08:00', tipo: 'appt' }); 
+                            setModalOpen(true); 
+                        }} className="gold-gradient text-black px-4 py-2 rounded-xl font-black text-[10px] flex items-center gap-2 shadow-lg active:scale-95 transition-transform">
+                            <Icon name="plus" size={14} /> NOVO
+                        </button>
+                    </header>
+
+                    <nav className="flex bg-[#111] border-b border-white/5 sticky top-[73px] z-30 shadow-md">
+                        {['agenda', 'equipe', 'servicos'].map(tab => (
+                            <button key={tab} onClick={() => setView(tab)} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${view === tab ? 'gold-text border-b-2 border-[#c9973a]' : 'text-gray-500'}`}>
+                                {tab}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <main className="p-4 max-w-4xl mx-auto animate-fade-in">
+                        {view === 'agenda' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-6 glass p-4 rounded-3xl shadow-lg">
+                                    <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() - 1); setCurrentDate(d); }} className="gold-text p-2 hover:bg-white/5 rounded-full transition-colors"><Icon name="chevronLeft" /></button>
+                                    <div className="text-center">
+                                        <p className="text-[10px] gold-text font-black uppercase tracking-[0.2em]">{currentDate.toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
+                                        <p className="text-sm font-bold capitalize">{currentDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
+                                    </div>
+                                    <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d); }} className="gold-text p-2 hover:bg-white/5 rounded-full transition-colors"><Icon name="chevronRight" /></button>
+                                </div>
+
+                                <div className="flex bg-[#141414] rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl relative">
+                                    <div className="w-14 bg-black/40 border-r border-white/5 shrink-0">
+                                        {timeSlots.map(s => <div key={s} className="h-16 flex items-center justify-center text-[9px] font-black text-gray-600 border-b border-white/10 uppercase">{s}</div>)}
+                                    </div>
+                                    <div className="flex flex-1 overflow-x-auto no-scrollbar">
+                                        {barbeiros.length === 0 ? (
+                                            <div className="p-10 text-center w-full opacity-50 text-[10px] uppercase font-black">Adicione Barbeiros em Equipe</div>
+                                        ) : barbeiros.map(b => (
+                                            <div key={b.id} className="min-w-[150px] flex-1 border-r border-white/5 relative bg-white/[0.01]">
+                                                <div className="h-10 bg-white/5 flex items-center justify-center text-[10px] font-black gold-text uppercase border-b border-white/10 tracking-widest sticky top-0 z-10">{b.nome}</div>
+                                                <div className="relative h-[1920px]" onClick={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    const slotIdx = Math.floor((e.clientY - rect.top) / 64);
+                                                    if (timeSlots[slotIdx]) {
+                                                        setEditingItem(null);
+                                                        setForm({ cliente: '', barbeiro_nome: b.nome, servico_nome: servicos[0]?.nome || '', hora: timeSlots[slotIdx], tipo: 'appt' });
+                                                        setModalOpen(true);
+                                                    }
+                                                }}>
+                                                    {agenda.filter(a => a.barbeiro_nome === b.nome && a.data === formatDate(currentDate)).map(item => {
+                                                        const [h, m] = item.hora.split(':').map(Number);
+                                                        const top = ((h - 8) * 2 + (m === 30 ? 1 : 0)) * 64;
+                                                        return (
+                                                            <div key={item.id} onClick={(e) => { e.stopPropagation(); setEditingItem(item); setForm({ ...item }); setModalOpen(true); }}
+                                                                className={`absolute inset-x-1 rounded-xl border-l-4 p-2 shadow-xl z-10 transition-all active:scale-95 cursor-pointer ${item.tipo === 'block' ? 'bg-red-500/10 border-red-500' : 'bg-[#c9973a]/20 border-[#c9973a]'}`}
+                                                                style={{ top: `${top}px`, height: '60px' }}>
+                                                                <div className="flex items-center gap-1 mb-0.5">
+                                                                    {item.tipo === 'block' && <Icon name="lock" size={10} />}
+                                                                    <div className="text-[10px] font-black truncate uppercase leading-none">{item.tipo === 'block' ? 'Bloqueado' : item.cliente}</div>
+                                                                </div>
+                                                                <div className="text-[8px] opacity-60 font-black uppercase truncate">{item.servico_nome}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'equipe' && (
+                            <div className="space-y-4">
+                                {barbeiros.map(b => (
+                                    <div key={b.id} className="glass p-5 rounded-3xl flex justify-between items-center shadow-xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 gold-gradient rounded-2xl flex items-center justify-center text-black font-black italic text-lg shadow-inner">{b.nome[0]}</div>
+                                            <span className="font-bold text-lg tracking-tight">{b.nome}</span>
+                                        </div>
+                                        <button onClick={async () => { if (confirm(`Remover ${b.nome}?`)) { await supabaseClient.from('barbeiros').delete().eq('id', b.id); fetchData(); } }} className="text-red-500/50 hover:text-red-500 p-2 transition-colors"><Icon name="trash" size={20} /></button>
+                                    </div>
+                                ))}
+                                <div className="flex gap-2 mt-10">
+                                    <input value={newBName} onChange={e => setNewBName(e.target.value)} placeholder="Nome do barbeiro..." className="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-white focus:border-[#c9973a]/50" />
+                                    <button onClick={addBarbeiro} className="gold-gradient text-black px-8 rounded-2xl font-black uppercase text-[10px] shadow-lg">Add</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'servicos' && (
+                            <div className="space-y-4">
+                                {servicos.map(s => (
+                                    <div key={s.id} className="glass p-5 rounded-3xl flex justify-between items-center shadow-xl">
+                                        <div>
+                                            <p className="font-bold text-lg leading-tight">{s.nome}</p>
+                                            <p className="gold-text text-[10px] font-black uppercase tracking-widest mt-1">R$ {s.preco}</p>
+                                        </div>
+                                        <button onClick={async () => { if(confirm('Excluir?')) { await supabaseClient.from('servicos').delete().eq('id', s.id); fetchData(); } }} className="text-red-500/50 hover:text-red-500 p-2"><Icon name="trash" size={20} /></button>
+                                    </div>
+                                ))}
+                                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 space-y-4 mt-10">
+                                    <input value={newSName} onChange={e => setNewSName(e.target.value)} placeholder="Nome do serviço" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-white" />
+                                    <input value={newSPrice} onChange={e => setNewSPrice(e.target.value)} type="number" placeholder="Preço (Ex: 35)" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-white" />
+                                    <button onClick={addServico} className="w-full gold-gradient text-black py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl">Gravar Serviço</button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-10 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.5em]">BarberFlow Cloud Sync Active</div>
+                    </main>
+
+                    {modalOpen && (
+                        <div className="fixed inset-0 bg-black/95 z-50 flex items-end sm:items-center justify-center p-4">
+                            <div className="absolute inset-0" onClick={() => setModalOpen(false)}></div>
+                            <div className="bg-[#141414] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 space-y-6 border border-white/10 relative z-10 animate-fade-in">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-black gold-text italic uppercase">AGENDAMENTO</h3>
+                                    <div className="flex bg-white/5 p-1 rounded-full border border-white/10">
+                                        <button onClick={() => setForm({ ...form, tipo: 'appt' })} className={`px-4 py-2 rounded-full text-[9px] font-black ${form.tipo === 'appt' ? 'gold-gradient text-black' : 'text-gray-500'}`}>AGENDAR</button>
+                                        <button onClick={() => setForm({ ...form, tipo: 'block' })} className={`px-4 py-2 rounded-full text-[9px] font-black ${form.tipo === 'block' ? 'bg-red-500 text-white shadow-lg' : 'text-gray-500'}`}>BLOQUEAR</button>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    {form.tipo === 'appt' ? (
+                                        <div className="space-y-4">
+                                            <input className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-white focus:border-[#c9973a]/50" placeholder="Nome do Cliente" value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} />
+                                            <select className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none" value={form.servico_nome} onChange={e => setForm({ ...form, servico_nome: e.target.value })}>
+                                                <option value="">Selecionar Serviço</option>
+                                                {servicos.map(s => <option key={s.id} value={s.nome}>{s.nome} - R${s.preco}</option>)}
+                                            </select>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-[10px] font-black text-red-500 uppercase">Horário ficará indisponível</div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <select className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none" value={form.barbeiro_nome} onChange={e => setForm({ ...form, barbeiro_nome: e.target.value })}>
+                                            {barbeiros.map(b => <option key={b.id} value={b.nome}>{b.nome}</option>)}
+                                        </select>
+                                        <select className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none" value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })}>
+                                            {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={handleSave} className="w-full gold-gradient text-black py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl active:scale-95 transition-transform">Confirmar</button>
+                                    {editingItem && <button onClick={() => handleDelete(editingItem.id)} className="w-full text-red-500 text-[10px] font-black uppercase py-2">Eliminar Registro</button>}
+                                    <button onClick={() => setModalOpen(false)} className="w-full text-gray-600 text-[10px] font-black uppercase py-2">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
